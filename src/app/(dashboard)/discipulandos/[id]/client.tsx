@@ -58,6 +58,8 @@ interface Props {
   discipuladores: Profile[]
   classes: Class[]
   currentProfile: Profile
+  hasAttendedConfraternizacao: boolean
+  preferredShift: string | null
 }
 
 const CONTACT_OUTCOMES: { value: ContactOutcome; label: string }[] = [
@@ -80,6 +82,8 @@ export function DiscipleDetailClient({
   discipuladores,
   classes,
   currentProfile,
+  hasAttendedConfraternizacao,
+  preferredShift,
 }: Props) {
   const router = useRouter()
   const [editDisciple, setEditDisciple] = useState(false)
@@ -222,7 +226,12 @@ export function DiscipleDetailClient({
             </Button>
           )}
           {activeCase && canManageCase && activeCase.status === 'PENDENTE_MATRICULA' && (
-            <Button size="sm" onClick={() => setEnrollModal(true)}>
+            <Button
+              size="sm"
+              onClick={() => setEnrollModal(true)}
+              disabled={!hasAttendedConfraternizacao}
+              title={!hasAttendedConfraternizacao ? 'Discipulando precisa participar de uma confraternização primeiro' : ''}
+            >
               <BookOpen className="h-4 w-4" />
               Matricular em turma
             </Button>
@@ -261,6 +270,14 @@ export function DiscipleDetailClient({
       </div>
 
       {error && <Alert type="error" className="mb-4">{error}</Alert>}
+
+      {/* Aviso: aguardando confraternização */}
+      {activeCase?.status === 'PENDENTE_MATRICULA' && !hasAttendedConfraternizacao && (
+        <Alert type="warning" className="mb-4">
+          <AlertCircle className="inline h-4 w-4 mr-1" />
+          Aguardando participação em uma confraternização para liberar a matrícula em turma.
+        </Alert>
+      )}
 
       {/* Bloqueios para conclusão */}
       {activeCase?.status === 'EM_DISCIPULADO' && !canConclude && (
@@ -497,12 +514,19 @@ export function DiscipleDetailClient({
       {/* Modal: matricular em turma */}
       <Dialog open={enrollModal} onClose={() => setEnrollModal(false)} title="Matricular em Turma">
         <div className="flex flex-col gap-4">
+          {preferredShift && (
+            <div className="rounded-lg bg-indigo-50 px-3 py-2 text-sm text-indigo-800">
+              Turno preferido (confraternização): <strong>
+                {preferredShift === 'MANHA' ? 'Manhã' : preferredShift === 'TARDE' ? 'Tarde' : preferredShift === 'NOITE' ? 'Noite' : 'Não informado'}
+              </strong>
+            </div>
+          )}
           <Select
             label="Turma"
             placeholder="Selecionar turma"
             value={selectedClass}
             onChange={e => setSelectedClass(e.target.value)}
-            options={classes.map(c => ({ value: c.id, label: `${c.name} (${c.shift})` }))}
+            options={classes.map(c => ({ value: c.id, label: `${c.name} — ${c.shift === 'MANHA' ? 'Manhã' : c.shift === 'TARDE' ? 'Tarde' : c.shift === 'NOITE' ? 'Noite' : 'Turno não informado'}` }))}
           />
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setEnrollModal(false)}>Cancelar</Button>

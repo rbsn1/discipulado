@@ -122,3 +122,22 @@ export async function getConfirmationsForEvent(eventId: string): Promise<EventCo
   if (error) throw error
   return data as EventConfirmation[]
 }
+
+export async function getCaseConfraternizacaoInfo(caseId: string): Promise<{
+  hasAttended: boolean
+  preferredShift: string | null
+}> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('event_confirmations')
+    .select('class_shift')
+    .eq('case_id', caseId)
+    .eq('attended', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
+
+  return {
+    hasAttended: (data?.length ?? 0) > 0,
+    preferredShift: data?.[0]?.class_shift ?? null,
+  }
+}

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Select } from '@/components/ui/select'
+import { Dialog } from '@/components/ui/dialog'
 import { formatDate, downloadCSV, toCSV, SHIFT_LABEL, cn } from '@/lib/utils'
 import { ChevronRight, CheckCircle, X, Download } from 'lucide-react'
 import type { Profile, DiscipleshipCaseWithRelations, ClassShift } from '@/types'
@@ -51,6 +52,8 @@ export function EventDetailClient({ event, activeCases, currentProfile }: Props)
   const [confirmations, setConfirmations] = useState(event.event_confirmations)
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [attendModal, setAttendModal] = useState<string | null>(null) // case_id
+  const [attendShift, setAttendShift] = useState<string>('')
 
   const canManage = ['ADMIN_DISCIPULADO', 'DISCIPULADOR', 'SECRETARIA_DISCIPULADO', 'SM_DISCIPULADO', 'ADMIN_PLATAFORMA'].includes(currentProfile.role)
   const canExport = ['ADMIN_DISCIPULADO', 'SECRETARIA_DISCIPULADO', 'SM_DISCIPULADO', 'ADMIN_PLATAFORMA'].includes(currentProfile.role)
@@ -75,6 +78,18 @@ export function EventDetailClient({ event, activeCases, currentProfile }: Props)
     if (!res.ok) setError((await res.json()).error)
     else router.refresh()
     setLoading(null)
+  }
+
+  function openAttendModal(c: Confirmation) {
+    setAttendShift(c.class_shift ?? '')
+    setAttendModal(c.case_id)
+  }
+
+  async function confirmAttend() {
+    if (!attendModal) return
+    const existing = confirmations.find(c => c.case_id === attendModal)
+    await toggle(attendModal, 'attended', false, (attendShift as ClassShift) || null)
+    setAttendModal(null)
   }
 
   function exportCSV() {
@@ -161,7 +176,10 @@ export function EventDetailClient({ event, activeCases, currentProfile }: Props)
                 </td>
                 <td className="px-4 py-2.5 text-center">
                   {canManage ? (
-                    <button onClick={() => toggle(c.case_id, 'attended', c.attended)}>
+                    <button
+                      onClick={() => c.attended ? toggle(c.case_id, 'attended', true) : openAttendModal(c)}
+                      title={c.attended ? 'Desmarcar presença' : 'Registrar presença e turno'}
+                    >
                       {c.attended
                         ? <CheckCircle className="h-5 w-5 text-blue-600 mx-auto" />
                         : <X className="h-5 w-5 text-gray-300 mx-auto" />}
@@ -175,6 +193,25 @@ export function EventDetailClient({ event, activeCases, currentProfile }: Props)
           </tbody>
         </table>
       </div>
+
+      {/* Modal: registrar presença + turno preferido */}
+      <Dialog open={!!attendModal} onClose={() => setAttendModal(null)} title="Registrar Presença">
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-gray-600">
+            Selecione o turno de preferência do discipulando para o discipulado:
+          </p>
+          <Select
+            label="Turno preferido"
+            value={attendShift}
+            onChange={e => setAttendShift(e.target.value)}
+            options={SHIFT_OPTIONS}
+          />
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setAttendModal(null)}>Cancelar</Button>
+            <Button onClick={confirmAttend} loading={!!loading}>Confirmar presença</Button>
+          </div>
+        </div>
+      </Dialog>
 
       {/* Adicionar novos */}
       {canManage && unconfirmedCases.length > 0 && (
