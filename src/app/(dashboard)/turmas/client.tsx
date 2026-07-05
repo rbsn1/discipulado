@@ -10,7 +10,7 @@ import { Dialog } from '@/components/ui/dialog'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { SHIFT_LABEL } from '@/lib/utils'
-import { Plus, BookOpen } from 'lucide-react'
+import { Plus, BookOpen, Pencil } from 'lucide-react'
 import type { Class, ClassShift, UserRole } from '@/types'
 
 interface Props {
@@ -26,9 +26,10 @@ const SHIFT_OPTIONS = [
   { value: 'NAO_INFORMADO', label: 'Não informado' },
 ]
 
-export function TurmasClient({ classes, congregationId, currentRole }: Props) {
+export function TurmasClient({ classes, currentRole }: Props) {
   const router = useRouter()
   const [showForm, setShowForm] = useState(false)
+  const [editClass, setEditClass] = useState<Class | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [name, setName] = useState('')
@@ -36,12 +37,34 @@ export function TurmasClient({ classes, congregationId, currentRole }: Props) {
 
   const canManage = ['ADMIN_DISCIPULADO', 'DISCIPULADOR', 'ADMIN_PLATAFORMA'].includes(currentRole)
 
-  async function handleCreate() {
+  function openCreate() {
+    setEditClass(null)
+    setName('')
+    setShift('NAO_INFORMADO')
+    setError('')
+    setShowForm(true)
+  }
+
+  function openEdit(c: Class, e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    setEditClass(c)
+    setName(c.name)
+    setShift(c.shift)
+    setError('')
+    setShowForm(true)
+  }
+
+  async function handleSave() {
     if (!name.trim()) { setError('Nome obrigatório'); return }
     setLoading(true)
     setError('')
-    const res = await fetch('/api/classes', {
-      method: 'POST',
+
+    const url = editClass ? `/api/classes/${editClass.id}` : '/api/classes'
+    const method = editClass ? 'PATCH' : 'POST'
+
+    const res = await fetch(url, {
+      method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: name.trim(), shift }),
     })
@@ -50,7 +73,6 @@ export function TurmasClient({ classes, congregationId, currentRole }: Props) {
       setError(d.error)
     } else {
       setShowForm(false)
-      setName('')
       router.refresh()
     }
     setLoading(false)
@@ -61,7 +83,7 @@ export function TurmasClient({ classes, congregationId, currentRole }: Props) {
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Turmas</h1>
         {canManage && (
-          <Button onClick={() => setShowForm(true)}>
+          <Button onClick={openCreate}>
             <Plus className="h-4 w-4" />
             Nova turma
           </Button>
@@ -77,28 +99,42 @@ export function TurmasClient({ classes, congregationId, currentRole }: Props) {
           </div>
         )}
         {classes.map(c => (
-          <Link
-            key={c.id}
-            href={`/turmas/${c.id}`}
-            className="block rounded-lg border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-start gap-3">
-              <div className="rounded-lg bg-blue-50 p-2">
-                <BookOpen className="h-5 w-5 text-blue-600" />
+          <div key={c.id} className="relative group">
+            <Link
+              href={`/turmas/${c.id}`}
+              className="block rounded-xl border border-gray-100 bg-white p-5 shadow-sm hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-start gap-3">
+                <div className="rounded-lg bg-indigo-50 p-2">
+                  <BookOpen className="h-5 w-5 text-indigo-600" />
+                </div>
+                <div className="min-w-0 flex-1 pr-8">
+                  <p className="font-semibold text-gray-900 truncate">{c.name}</p>
+                  <p className="text-sm text-gray-500 mt-0.5">{SHIFT_LABEL[c.shift]}</p>
+                  {!c.is_active && (
+                    <Badge variant="muted" className="mt-1">Inativa</Badge>
+                  )}
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="font-semibold text-gray-900 truncate">{c.name}</p>
-                <p className="text-sm text-gray-500 mt-0.5">{SHIFT_LABEL[c.shift]}</p>
-                {!c.is_active && (
-                  <Badge variant="muted" className="mt-1">Inativa</Badge>
-                )}
-              </div>
-            </div>
-          </Link>
+            </Link>
+            {canManage && (
+              <button
+                onClick={(e) => openEdit(c, e)}
+                className="absolute right-3 top-3 rounded-lg p-1.5 text-gray-400 opacity-0 group-hover:opacity-100 hover:bg-gray-100 hover:text-gray-700 transition-all"
+                title="Editar turma"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         ))}
       </div>
 
-      <Dialog open={showForm} onClose={() => setShowForm(false)} title="Nova Turma">
+      <Dialog
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        title={editClass ? 'Editar Turma' : 'Nova Turma'}
+      >
         <div className="flex flex-col gap-4">
           {error && <Alert type="error">{error}</Alert>}
           <Input
@@ -115,7 +151,9 @@ export function TurmasClient({ classes, congregationId, currentRole }: Props) {
           />
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setShowForm(false)}>Cancelar</Button>
-            <Button onClick={handleCreate} loading={loading}>Criar turma</Button>
+            <Button onClick={handleSave} loading={loading}>
+              {editClass ? 'Salvar alterações' : 'Criar turma'}
+            </Button>
           </div>
         </div>
       </Dialog>

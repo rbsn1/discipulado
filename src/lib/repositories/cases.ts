@@ -20,11 +20,7 @@ export async function getCases(congregationId: string, filters?: {
     .select(`
       *,
       disciples ( id, full_name, phone, origin ),
-      profiles!assigned_to ( id, name ),
-      class_enrollments:class_enrollments!disciple_id (
-        id, active, class_id,
-        classes ( id, name, shift )
-      )
+      profiles!assigned_to ( id, name )
     `)
     .eq('congregation_id', congregationId)
     .order('created_at', { ascending: false })

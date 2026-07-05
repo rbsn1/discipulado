@@ -60,6 +60,22 @@ export async function createEvent(
   return data as Event
 }
 
+export async function updateEvent(
+  id: string,
+  updates: { title?: string; date?: string; notes?: string | null }
+): Promise<Event> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('events')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as Event
+}
+
 export async function updateEventStatus(
   id: string,
   status: 'PLANEJADO' | 'REALIZADO' | 'CANCELADO'
