@@ -11,20 +11,20 @@ import {
   Star,
   Settings,
   LogOut,
-  ChevronRight,
+  Heart,
 } from 'lucide-react'
 import { logout } from '@/lib/actions/auth'
 import type { Profile } from '@/types'
 import { ROLE_LABEL } from '@/lib/utils'
 
 const navItems = [
-  { href: '/painel', label: 'Painel', icon: LayoutDashboard },
-  { href: '/acolhimento', label: 'Fila de Acolhimento', icon: ChevronRight },
-  { href: '/discipulandos', label: 'Discipulandos', icon: Users },
-  { href: '/turmas', label: 'Turmas', icon: BookOpen },
-  { href: '/confraternizacao', label: 'Confraternização', icon: CalendarDays },
-  { href: '/pos-discipulado', label: 'Pós-Discipulado', icon: Star },
-  { href: '/admin', label: 'Administração', icon: Settings },
+  { href: '/painel', label: 'Painel', icon: LayoutDashboard, color: 'text-indigo-400' },
+  { href: '/acolhimento', label: 'Fila de Acolhimento', icon: Heart, color: 'text-rose-400' },
+  { href: '/discipulandos', label: 'Discipulandos', icon: Users, color: 'text-sky-400' },
+  { href: '/turmas', label: 'Turmas', icon: BookOpen, color: 'text-emerald-400' },
+  { href: '/confraternizacao', label: 'Confraternização', icon: CalendarDays, color: 'text-amber-400' },
+  { href: '/pos-discipulado', label: 'Pós-Discipulado', icon: Star, color: 'text-violet-400' },
+  { href: '/admin', label: 'Administração', icon: Settings, color: 'text-slate-400' },
 ]
 
 interface SidebarProps {
@@ -41,41 +41,46 @@ export function Sidebar({ profile, congregationName }: SidebarProps) {
   )
 
   return (
-    <aside className="flex h-screen w-64 flex-col border-r border-gray-200 bg-white">
+    <aside className="flex h-screen w-64 flex-col bg-slate-900">
       {/* Logo */}
-      <div className="flex items-center gap-3 border-b border-gray-200 px-4 py-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600">
+      <div className="flex items-center gap-3 px-5 py-5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 shadow-lg shadow-indigo-900/50">
           <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
               d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-gray-900">Discipulado</p>
+          <p className="truncate text-sm font-bold text-white tracking-wide">Discipulado</p>
           {congregationName && (
-            <p className="truncate text-xs text-gray-500">{congregationName}</p>
+            <p className="truncate text-xs text-slate-400">{congregationName}</p>
           )}
         </div>
       </div>
 
+      <div className="mx-4 mb-3 h-px bg-slate-800" />
+
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-2 py-3">
+      <nav className="flex-1 overflow-y-auto px-3 py-1">
         <ul className="flex flex-col gap-0.5">
-          {visibleItems.map(({ href, label, icon: Icon }) => {
+          {visibleItems.map(({ href, label, icon: Icon, color }) => {
             const active = pathname === href || (href !== '/painel' && pathname.startsWith(href))
             return (
               <li key={href}>
                 <Link
                   href={href}
                   className={cn(
-                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
                     active
-                      ? 'bg-blue-50 text-blue-700'
-                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                      ? 'bg-white/10 text-white'
+                      : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
                   )}
                 >
-                  <Icon className="h-5 w-5 shrink-0" />
+                  <Icon className={cn('h-4.5 w-4.5 shrink-0', active ? 'text-white' : color)} size={18} />
                   {label}
+                  {active && (
+                    <span className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-400" />
+                  )}
                 </Link>
               </li>
             )
@@ -84,18 +89,24 @@ export function Sidebar({ profile, congregationName }: SidebarProps) {
       </nav>
 
       {/* User footer */}
-      <div className="border-t border-gray-200 px-4 py-3">
-        <div className="mb-2">
-          <p className="truncate text-sm font-medium text-gray-900">{profile.name}</p>
-          <p className="truncate text-xs text-gray-500">{ROLE_LABEL[profile.role]}</p>
+      <div className="mx-4 mb-1 h-px bg-slate-800" />
+      <div className="px-4 py-4">
+        <div className="mb-3 flex items-center gap-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">
+            {profile.name.charAt(0).toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-white">{profile.name}</p>
+            <p className="truncate text-xs text-slate-400">{ROLE_LABEL[profile.role]}</p>
+          </div>
         </div>
         <form action={logout}>
           <button
             type="submit"
-            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-200"
           >
-            <LogOut className="h-4 w-4" />
-            Sair
+            <LogOut className="h-3.5 w-3.5" />
+            Sair da conta
           </button>
         </form>
       </div>

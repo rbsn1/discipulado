@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/lib/repositories/profiles'
 import { getDashboardStats } from '@/lib/repositories/cases'
-import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import {
@@ -14,6 +13,8 @@ import {
   UserX,
   TrendingDown,
   PhoneOff,
+  ChevronRight,
+  Settings,
 } from 'lucide-react'
 
 interface StatCardProps {
@@ -21,24 +22,30 @@ interface StatCardProps {
   value: number
   icon: React.ElementType
   href?: string
-  color?: string
+  accent: string
+  iconBg: string
+  iconColor: string
 }
 
-function StatCard({ title, value, icon: Icon, href, color = 'text-blue-600' }: StatCardProps) {
+function StatCard({ title, value, icon: Icon, href, accent, iconBg, iconColor }: StatCardProps) {
   const content = (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardContent className="pt-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-500">{title}</p>
-            <p className="mt-1 text-3xl font-bold text-gray-900">{value}</p>
-          </div>
-          <div className={`rounded-xl bg-gray-50 p-3 ${color}`}>
-            <Icon className="h-6 w-6" />
-          </div>
+    <div className={`group relative overflow-hidden rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md ${href ? 'cursor-pointer' : ''}`}>
+      <div className={`absolute inset-x-0 top-0 h-0.5 ${accent}`} />
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-400">{title}</p>
+          <p className="mt-2 text-3xl font-bold text-gray-900">{value}</p>
         </div>
-      </CardContent>
-    </Card>
+        <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconBg}`}>
+          <Icon className={`h-5 w-5 ${iconColor}`} />
+        </div>
+      </div>
+      {href && (
+        <div className="mt-3 flex items-center gap-1 text-xs text-gray-400 group-hover:text-gray-600 transition-colors">
+          Ver detalhes <ChevronRight className="h-3 w-3" />
+        </div>
+      )}
+    </div>
   )
   return href ? <Link href={href}>{content}</Link> : content
 }
@@ -54,23 +61,31 @@ interface AlertCardProps {
 
 function AlertCard({ title, count, icon: Icon, href, description, severity }: AlertCardProps) {
   if (count === 0) return null
-  const classes = severity === 'danger'
-    ? 'border-red-200 bg-red-50'
-    : 'border-yellow-200 bg-yellow-50'
-  const iconColor = severity === 'danger' ? 'text-red-600' : 'text-yellow-600'
+  const isDanger = severity === 'danger'
   return (
     <Link href={href}>
-      <div className={`flex items-start gap-3 rounded-lg border p-4 hover:shadow-sm transition-shadow ${classes}`}>
-        <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${iconColor}`} />
-        <div>
-          <p className="font-medium text-gray-900">
+      <div className={`group flex items-center gap-4 rounded-xl border p-4 transition-all hover:shadow-sm ${
+        isDanger
+          ? 'border-rose-100 bg-rose-50 hover:border-rose-200'
+          : 'border-amber-100 bg-amber-50 hover:border-amber-200'
+      }`}>
+        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+          isDanger ? 'bg-rose-100' : 'bg-amber-100'
+        }`}>
+          <Icon className={`h-4.5 w-4.5 ${isDanger ? 'text-rose-600' : 'text-amber-600'}`} size={18} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-gray-900">
             {count} {title}
           </p>
-          <p className="text-sm text-gray-600">{description}</p>
+          <p className="text-xs text-gray-500">{description}</p>
         </div>
-        <Badge variant={severity === 'danger' ? 'danger' : 'warning'} className="ml-auto">
-          {count}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant={isDanger ? 'danger' : 'warning'} dot>
+            {count}
+          </Badge>
+          <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-500 transition-colors" />
+        </div>
       </div>
     </Link>
   )
@@ -84,17 +99,23 @@ export default async function PainelPage() {
 
   if (profile.role === 'ADMIN_PLATAFORMA' && !profile.congregation_id) {
     return (
-      <div className="p-6 max-w-6xl mx-auto">
-        <div className="mb-6">
+      <div className="p-8 max-w-4xl mx-auto">
+        <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900">Painel da Plataforma</h1>
-          <p className="text-sm text-gray-500 mt-1">Administração global do sistema</p>
+          <p className="mt-1 text-sm text-gray-500">Administração global do sistema</p>
         </div>
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-6 text-blue-800">
-          <p className="font-medium">Bem-vindo, Administrador da Plataforma.</p>
-          <p className="mt-2 text-sm">
-            Para gerenciar uma congregação específica, acesse o menu{' '}
-            <strong>Admin → Usuários</strong> para criar usuários administradores por congregação.
-          </p>
+        <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-6">
+          <div className="flex items-start gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600">
+              <Settings className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <p className="font-semibold text-indigo-900">Bem-vindo, Administrador da Plataforma.</p>
+              <p className="mt-1 text-sm text-indigo-700">
+                Acesse <strong>Admin → Usuários</strong> para criar administradores por congregação.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -107,61 +128,83 @@ export default async function PainelPage() {
   const congregationId = profile.congregation_id
   const [stats] = await Promise.all([getDashboardStats(congregationId)])
 
+  const statCards: StatCardProps[] = [
+    {
+      title: 'Acolhimento',
+      value: stats.acolhimento,
+      icon: UserCheck,
+      href: '/acolhimento',
+      accent: 'bg-indigo-500',
+      iconBg: 'bg-indigo-50',
+      iconColor: 'text-indigo-600',
+    },
+    {
+      title: 'Pend. Matrícula',
+      value: stats.pendente_matricula,
+      icon: Users,
+      href: '/acolhimento?status=PENDENTE_MATRICULA',
+      accent: 'bg-amber-500',
+      iconBg: 'bg-amber-50',
+      iconColor: 'text-amber-600',
+    },
+    {
+      title: 'Em Discipulado',
+      value: stats.em_discipulado,
+      icon: BookOpen,
+      href: '/acolhimento?status=EM_DISCIPULADO',
+      accent: 'bg-sky-500',
+      iconBg: 'bg-sky-50',
+      iconColor: 'text-sky-600',
+    },
+    {
+      title: 'Pausados',
+      value: stats.pausado,
+      icon: PauseCircle,
+      href: '/acolhimento?status=PAUSADO',
+      accent: 'bg-slate-400',
+      iconBg: 'bg-slate-50',
+      iconColor: 'text-slate-500',
+    },
+    {
+      title: 'Concluídos',
+      value: stats.concluido,
+      icon: CheckCircle2,
+      href: '/pos-discipulado',
+      accent: 'bg-emerald-500',
+      iconBg: 'bg-emerald-50',
+      iconColor: 'text-emerald-600',
+    },
+  ]
+
+  const hasAlerts =
+    stats.sem_responsavel > 0 ||
+    stats.sem_matricula > 0 ||
+    stats.baixa_frequencia > 0 ||
+    stats.sem_contato_recente > 0
+
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Painel</h1>
-        <p className="text-sm text-gray-500 mt-1">Visão geral do discipulado da congregação</p>
-      </div>
-
-      {/* Indicadores principais */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 mb-8">
-        <StatCard
-          title="Acolhimento"
-          value={stats.acolhimento}
-          icon={UserCheck}
-          href="/acolhimento"
-          color="text-indigo-600"
-        />
-        <StatCard
-          title="Pend. Matrícula"
-          value={stats.pendente_matricula}
-          icon={Users}
-          href="/acolhimento?status=PENDENTE_MATRICULA"
-          color="text-yellow-600"
-        />
-        <StatCard
-          title="Em Discipulado"
-          value={stats.em_discipulado}
-          icon={BookOpen}
-          href="/acolhimento?status=EM_DISCIPULADO"
-          color="text-blue-600"
-        />
-        <StatCard
-          title="Pausados"
-          value={stats.pausado}
-          icon={PauseCircle}
-          href="/acolhimento?status=PAUSADO"
-          color="text-gray-500"
-        />
-        <StatCard
-          title="Concluídos"
-          value={stats.concluido}
-          icon={CheckCircle2}
-          href="/pos-discipulado"
-          color="text-green-600"
-        />
-      </div>
-
-      {/* Alertas / riscos */}
+    <div className="p-8 max-w-6xl mx-auto">
       <div className="mb-8">
-        <h2 className="text-base font-semibold text-gray-900 mb-3">Ações recomendadas</h2>
-        {stats.sem_responsavel === 0 &&
-          stats.sem_matricula === 0 &&
-          stats.baixa_frequencia === 0 &&
-          stats.sem_contato_recente === 0 ? (
-          <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800">
-            Nenhuma ação urgente pendente. Tudo certo!
+        <h1 className="text-2xl font-bold text-gray-900">Painel</h1>
+        <p className="mt-1 text-sm text-gray-500">Visão geral do discipulado da congregação</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 mb-10">
+        {statCards.map((card) => (
+          <StatCard key={card.title} {...card} />
+        ))}
+      </div>
+
+      <div>
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-400">
+          Ações recomendadas
+        </h2>
+        {!hasAlerts ? (
+          <div className="flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            </div>
+            <p className="text-sm font-medium text-emerald-800">Nenhuma ação urgente. Tudo certo!</p>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
@@ -182,7 +225,7 @@ export default async function PainelPage() {
               severity="warning"
             />
             <AlertCard
-              title="com baixa frequência (<75%)"
+              title="com baixa frequência (abaixo de 75%)"
               count={stats.baixa_frequencia}
               icon={TrendingDown}
               href="/acolhimento?filter=baixa_frequencia"

@@ -1,9 +1,10 @@
 @import "tailwindcss";
 
 body {
-  background: #f9fafb;
-  color: #111827;
+  background: #f8fafc;
+  color: #0f172a;
   font-family: system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 dialog::backdrop {

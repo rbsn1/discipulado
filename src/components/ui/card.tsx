@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils'
 export function Card({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn('rounded-lg border border-gray-200 bg-white shadow-sm', className)}
+      className={cn('rounded-xl border border-gray-100 bg-white shadow-sm', className)}
       {...props}
     >
       {children}
@@ -13,7 +13,7 @@ export function Card({ className, children, ...props }: React.HTMLAttributes<HTM
 
 export function CardHeader({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn('border-b border-gray-200 px-6 py-4', className)} {...props}>
+    <div className={cn('border-b border-gray-100 px-6 py-4', className)} {...props}>
       {children}
     </div>
   )
@@ -21,7 +21,7 @@ export function CardHeader({ className, children, ...props }: React.HTMLAttribut
 
 export function CardTitle({ className, children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
-    <h3 className={cn('text-base font-semibold text-gray-900', className)} {...props}>
+    <h3 className={cn('text-sm font-semibold text-gray-900', className)} {...props}>
       {children}
     </h3>
   )
@@ -37,7 +37,7 @@ export function CardContent({ className, children, ...props }: React.HTMLAttribu
 
 export function CardFooter({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn('border-t border-gray-200 px-6 py-3', className)} {...props}>
+    <div className={cn('border-t border-gray-100 px-6 py-3', className)} {...props}>
       {children}
     </div>
   )
