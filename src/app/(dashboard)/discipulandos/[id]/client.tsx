@@ -52,7 +52,7 @@ import type {
 } from '@/types'
 
 interface Props {
-  disciple: Disciple & { congregation_id: string }
+  disciple: Disciple & { congregation_id: string; class_enrollments?: { id: string; active: boolean; class_id: string; classes: { id: string; name: string; shift: string } | null }[] }
   activeCase: DiscipleshipCaseWithRelations | null
   timeline: CaseEvent[]
   discipuladores: Profile[]
@@ -432,6 +432,12 @@ export function DiscipleDetailClient({
                   <div>
                     <p className="text-gray-500">Responsável</p>
                     <p className="font-medium">{(activeCase as any).profiles?.name ?? '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Turma</p>
+                    <p className="font-medium">
+                      {disciple.class_enrollments?.find(e => e.active)?.classes?.name ?? '—'}
+                    </p>
                   </div>
                   <div>
                     <p className="text-gray-500">Acolhimento</p>

@@ -30,16 +30,13 @@ export async function getDiscipleById(id: string) {
     .from('disciples')
     .select(`
       *,
+      class_enrollments ( id, active, class_id, classes ( id, name, shift ) ),
       discipleship_cases (
         *,
         profiles!assigned_to ( id, name ),
         case_module_progress (
           *,
           module_templates ( id, title, sort_order )
-        ),
-        class_enrollments:class_enrollments!disciple_id (
-          *,
-          classes ( id, name, shift )
         )
       )
     `)
