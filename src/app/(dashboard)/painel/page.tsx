@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/lib/repositories/profiles'
-import { getDashboardStats, getCases } from '@/lib/repositories/cases'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { getDashboardStats } from '@/lib/repositories/cases'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import {
@@ -78,11 +78,33 @@ function AlertCard({ title, count, icon: Icon, href, description, severity }: Al
 
 export default async function PainelPage() {
   const profile = await getCurrentProfile()
-  if (!profile?.congregation_id && profile?.role !== 'ADMIN_PLATAFORMA') {
+  if (!profile) {
     redirect('/login')
   }
 
-  const congregationId = profile!.congregation_id!
+  if (profile.role === 'ADMIN_PLATAFORMA' && !profile.congregation_id) {
+    return (
+      <div className="p-6 max-w-6xl mx-auto">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Painel da Plataforma</h1>
+          <p className="text-sm text-gray-500 mt-1">Administração global do sistema</p>
+        </div>
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-6 text-blue-800">
+          <p className="font-medium">Bem-vindo, Administrador da Plataforma.</p>
+          <p className="mt-2 text-sm">
+            Para gerenciar uma congregação específica, acesse o menu{' '}
+            <strong>Admin → Usuários</strong> para criar usuários administradores por congregação.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!profile.congregation_id) {
+    redirect('/login')
+  }
+
+  const congregationId = profile.congregation_id
   const [stats] = await Promise.all([getDashboardStats(congregationId)])
 
   return (
