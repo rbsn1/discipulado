@@ -149,7 +149,7 @@ export async function recordAttendance(
   const supabase = await createClient()
   const { error } = await supabase.rpc('record_attendance', {
     p_lesson_id: lessonId,
-    p_items: JSON.stringify(items),
+    p_items: items,
     p_marked_by: markedBy,
   })
   if (error) throw error
