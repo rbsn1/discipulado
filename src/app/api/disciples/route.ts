@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
 
-  const roles = ['ADMIN_DISCIPULADO', 'DISCIPULADOR', 'SECRETARIA_DISCIPULADO', 'SM_DISCIPULADO']
+  const roles = ['ADMIN_DISCIPULADO', 'DISCIPULADOR', 'SECRETARIA_DISCIPULADO', 'SM_DISCIPULADO', 'ADMIN_PLATAFORMA']
   if (!roles.includes(profile.role)) {
     return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
   }
@@ -32,9 +32,13 @@ export async function POST(req: NextRequest) {
     const disciple = await createDisciple(profile.congregation_id, body, profile.id)
     return NextResponse.json(disciple, { status: 201 })
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Erro interno'
+    const msg = (err as { message?: string })?.message ?? 'Erro interno'
+    console.error('[POST /api/disciples]', err)
     if (msg.includes('disciples_phone_congregation_unique')) {
       return NextResponse.json({ error: 'Este telefone já está cadastrado nesta congregação' }, { status: 409 })
+    }
+    if (msg.includes('row-level security') || msg.includes('violates')) {
+      return NextResponse.json({ error: 'Sem permissão para cadastrar nesta congregação' }, { status: 403 })
     }
     return NextResponse.json({ error: msg }, { status: 500 })
   }

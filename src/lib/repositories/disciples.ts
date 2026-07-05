@@ -70,7 +70,7 @@ export async function createDisciple(
     .select()
     .single()
 
-  if (error) throw error
+  if (error) throw new Error(error.message)
   return data as Disciple
 }
 
