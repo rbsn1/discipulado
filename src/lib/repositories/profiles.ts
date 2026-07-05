@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { Profile, ProfileWithCongregation, UserRole } from '@/types'
 
 export async function getCurrentProfile(): Promise<Profile | null> {
@@ -62,7 +63,7 @@ export async function createUserWithProfile(
   role: UserRole,
   congregationId: string | null
 ): Promise<void> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { error } = await supabase.auth.admin.createUser({
     email,
     password,
