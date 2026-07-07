@@ -40,7 +40,30 @@ import {
   BookOpen,
   ChevronRight,
   AlertCircle,
+  Heart,
+  Star,
+  FileText,
+  Play,
+  ClipboardList,
+  UserPlus,
+  BookX,
 } from 'lucide-react'
+
+const EVENT_CONFIG: Record<string, { icon: React.ElementType; cls: string }> = {
+  CADASTRO:        { icon: UserPlus,      cls: 'bg-slate-100 text-slate-600' },
+  ACOLHIMENTO:     { icon: Heart,         cls: 'bg-rose-100 text-rose-600' },
+  MATRICULA:       { icon: BookOpen,      cls: 'bg-indigo-100 text-indigo-600' },
+  DESmatricula:    { icon: BookX,         cls: 'bg-orange-100 text-orange-600' },
+  MODULO_INICIADO: { icon: Play,          cls: 'bg-sky-100 text-sky-600' },
+  MODULO_CONCLUIDO:{ icon: CheckCircle2,  cls: 'bg-emerald-100 text-emerald-600' },
+  CHAMADA:         { icon: ClipboardList, cls: 'bg-blue-100 text-blue-600' },
+  CONTATO:         { icon: PhoneCall,     cls: 'bg-teal-100 text-teal-600' },
+  PAUSA:           { icon: PauseCircle,   cls: 'bg-yellow-100 text-yellow-600' },
+  RETOMADA:        { icon: PlayCircle,    cls: 'bg-green-100 text-green-600' },
+  CONCLUSAO:       { icon: CheckCircle2,  cls: 'bg-emerald-100 text-emerald-600' },
+  POS_DISCIPULADO: { icon: Star,          cls: 'bg-violet-100 text-violet-600' },
+  NOTA:            { icon: FileText,      cls: 'bg-gray-100 text-gray-600' },
+}
 import type {
   Disciple,
   DiscipleshipCaseWithRelations,
@@ -382,20 +405,24 @@ export function DiscipleDetailClient({
               </CardHeader>
               <CardContent>
                 <ol className="relative border-l border-gray-200 ml-3">
-                  {timeline.map(ev => (
-                    <li key={ev.id} className="mb-5 ml-6">
-                      <span className="absolute -left-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-blue-100">
-                        <Clock className="h-3 w-3 text-blue-600" />
-                      </span>
-                      <div className="flex items-baseline gap-2">
-                        <p className="text-sm font-medium text-gray-900">{ev.description}</p>
-                        <time className="text-xs text-gray-400">{formatDateTime(ev.created_at)}</time>
-                      </div>
-                      {(ev as any).profiles?.name && (
-                        <p className="text-xs text-gray-500">por {(ev as any).profiles.name}</p>
-                      )}
-                    </li>
-                  ))}
+                  {timeline.map(ev => {
+                    const cfg = EVENT_CONFIG[ev.type] ?? { icon: Clock, cls: 'bg-blue-100 text-blue-600' }
+                    const Icon = cfg.icon
+                    return (
+                      <li key={ev.id} className="mb-5 ml-6">
+                        <span className={cn('absolute -left-2.5 flex h-5 w-5 items-center justify-center rounded-full', cfg.cls)}>
+                          <Icon className="h-3 w-3" />
+                        </span>
+                        <div className="flex items-baseline gap-2 flex-wrap">
+                          <p className="text-sm font-medium text-gray-900">{ev.description}</p>
+                          <time className="text-xs text-gray-400">{formatDateTime(ev.created_at)}</time>
+                        </div>
+                        {(ev as any).profiles?.name && (
+                          <p className="text-xs text-gray-500">por {(ev as any).profiles.name}</p>
+                        )}
+                      </li>
+                    )
+                  })}
                 </ol>
               </CardContent>
             </Card>

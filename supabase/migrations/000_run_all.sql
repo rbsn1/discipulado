@@ -1413,13 +1413,14 @@ ALTER TABLE congregations
   ADD COLUMN IF NOT EXISTS accent_color  text NOT NULL DEFAULT '#4F46E5',
   ADD COLUMN IF NOT EXISTS sidebar_color text NOT NULL DEFAULT '#0F172A';
 
-CREATE POLICY "admin can update own congregation theme"
-  ON congregations FOR UPDATE
+-- Substituir a policy de update de congregations para incluir ADMIN_DISCIPULADO
+DROP POLICY IF EXISTS "congregations_update" ON congregations;
+CREATE POLICY "congregations_update" ON congregations FOR UPDATE
   USING (
-    id IN (
-      SELECT congregation_id FROM profiles
-      WHERE id = auth.uid()
-        AND role IN ('ADMIN_PLATAFORMA', 'ADMIN_DISCIPULADO')
+    is_platform_admin()
+    OR (
+      id = auth_congregation_id()
+      AND has_role(ARRAY['ADMIN_DISCIPULADO']::user_role[])
     )
   );
 

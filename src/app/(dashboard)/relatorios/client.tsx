@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
-import type { ReportStats, ReportCase } from '@/lib/repositories/reports'
-import { Users, CheckCircle2, TrendingUp, Heart, Clock, AlertCircle, BookOpen, Droplets } from 'lucide-react'
+import type { ReportStats, ReportCase, MonthlyPoint } from '@/lib/repositories/reports'
+import { Users, CheckCircle2, TrendingUp, Heart, Clock, AlertCircle, BookOpen, Droplets, Download } from 'lucide-react'
 
 interface Props {
   stats: ReportStats
   cases: ReportCase[]
+  monthly: MonthlyPoint[]
 }
 
 function StatCard({
@@ -54,6 +55,67 @@ function FunnelBar({ label, count, total, color }: { label: string; count: numbe
   )
 }
 
+function MonthlyChart({ data }: { data: MonthlyPoint[] }) {
+  const W = 600, H = 180
+  const PAD = { top: 16, right: 16, bottom: 36, left: 32 }
+  const chartW = W - PAD.left - PAD.right
+  const chartH = H - PAD.top - PAD.bottom
+  const maxVal = Math.max(1, ...data.map(d => Math.max(d.new_cases, d.concluded)))
+  const barGroupW = chartW / data.length
+  const barW = Math.min(barGroupW * 0.3, 14)
+  const gap = 3
+
+  const y = (v: number) => chartH - (v / maxVal) * chartH
+  const ticks = Array.from(new Set([0, Math.ceil(maxVal / 2), maxVal]))
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: 180 }}>
+      <g transform={`translate(${PAD.left},${PAD.top})`}>
+        {ticks.map(t => (
+          <g key={t}>
+            <line x1={0} x2={chartW} y1={y(t)} y2={y(t)} stroke="#f1f5f9" strokeWidth={1} />
+            <text x={-6} y={y(t)} dy="0.32em" textAnchor="end" fontSize={9} fill="#94a3b8">{t}</text>
+          </g>
+        ))}
+        {data.map((d, i) => {
+          const cx = (i + 0.5) * barGroupW
+          const x1 = cx - barW - gap / 2
+          const x2 = cx + gap / 2
+          return (
+            <g key={d.month}>
+              <rect x={x1} y={y(d.new_cases)} width={barW} height={Math.max(0, chartH - y(d.new_cases))} fill="#818cf8" rx={2} />
+              <rect x={x2} y={y(d.concluded)} width={barW} height={Math.max(0, chartH - y(d.concluded))} fill="#34d399" rx={2} />
+              <text x={cx} y={chartH + 14} textAnchor="middle" fontSize={9} fill="#64748b">{d.label}</text>
+            </g>
+          )
+        })}
+        <line x1={0} x2={chartW} y1={chartH} y2={chartH} stroke="#e2e8f0" strokeWidth={1} />
+      </g>
+    </svg>
+  )
+}
+
+function downloadCSV(cases: ReportCase[]) {
+  const header = ['Nome', 'Telefone', 'Discipulador', 'Departamento', 'Integração', 'Batismo', 'Atualizado']
+  const rows = cases.map(c => [
+    c.disciple_name,
+    c.disciple_phone ?? '',
+    c.discipulador ?? '',
+    c.department_name ?? '',
+    c.department_contacted_at ? 'Confirmado' : c.department_name ? 'Aguardando' : 'Sem departamento',
+    c.baptism_status === 'BATIZADO' ? 'Batizado' : c.baptism_status === 'AGENDADO' ? 'Agendado' : 'Não batizado',
+    formatDate(c.updated_at),
+  ])
+  const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `relatorio-discipulado.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 function integrationLabel(c: ReportCase) {
   if (!c.department_name) return { label: 'Sem departamento', cls: 'bg-orange-100 text-orange-700' }
   if (!c.department_contacted_at) return { label: 'Aguardando confirmação', cls: 'bg-blue-100 text-blue-700' }
@@ -66,12 +128,21 @@ function baptismLabel(status: string | null) {
   return null
 }
 
-export function RelatoriosClient({ stats, cases }: Props) {
+export function RelatoriosClient({ stats, cases, monthly }: Props) {
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Relatórios</h1>
-        <p className="text-sm text-gray-500 mt-1">Visão geral do discipulado</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Relatórios</h1>
+          <p className="text-sm text-gray-500 mt-1">Visão geral do discipulado</p>
+        </div>
+        <button
+          onClick={() => downloadCSV(cases)}
+          className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+        >
+          <Download className="h-4 w-4" />
+          Exportar CSV
+        </button>
       </div>
 
       {/* Cards de resumo */}
@@ -144,6 +215,18 @@ export function RelatoriosClient({ stats, cases }: Props) {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Gráfico mensal */}
+      <div className="rounded-xl border border-gray-200 bg-white p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-gray-700">Evolução mensal — últimos 12 meses</h2>
+          <div className="flex items-center gap-4 text-xs text-gray-500">
+            <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded-sm bg-indigo-400" />Acolhimentos</span>
+            <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded-sm bg-emerald-400" />Concluídos</span>
+          </div>
+        </div>
+        <MonthlyChart data={monthly} />
       </div>
 
       {/* Tabela de concluídos */}

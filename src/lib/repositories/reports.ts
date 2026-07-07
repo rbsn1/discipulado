@@ -1,5 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 
+export interface MonthlyPoint {
+  month: string
+  label: string
+  new_cases: number
+  concluded: number
+}
+
 export interface ReportStats {
   total_cases: number
   acolhimento: number
@@ -67,6 +74,44 @@ export async function getReportStats(congregationId: string): Promise<ReportStat
     taxa_conclusao:       total > 0 ? Math.round((concluded.length / total) * 100) : 0,
     taxa_integracao:      concluded.length > 0 ? Math.round((confirm.length / concluded.length) * 100) : 0,
   }
+}
+
+export async function getMonthlyStats(congregationId: string): Promise<MonthlyPoint[]> {
+  const supabase = await createClient()
+  const since = new Date()
+  since.setMonth(since.getMonth() - 11)
+  since.setDate(1)
+  since.setHours(0, 0, 0, 0)
+
+  const { data } = await supabase
+    .from('discipleship_cases')
+    .select('created_at, status')
+    .eq('congregation_id', congregationId)
+    .gte('created_at', since.toISOString())
+
+  const PT_MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+  const monthMap = new Map<string, { new_cases: number; concluded: number; label: string }>()
+
+  for (let i = 0; i < 12; i++) {
+    const d = new Date()
+    d.setMonth(d.getMonth() - 11 + i)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    monthMap.set(key, { new_cases: 0, concluded: 0, label: PT_MONTHS[d.getMonth()] })
+  }
+
+  for (const row of data ?? []) {
+    const d = new Date(row.created_at)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const entry = monthMap.get(key)
+    if (entry) {
+      entry.new_cases++
+      if (row.status === 'CONCLUIDO') entry.concluded++
+    }
+  }
+
+  return Array.from(monthMap.entries()).map(([month, { new_cases, concluded, label }]) => ({
+    month, label, new_cases, concluded,
+  }))
 }
 
 export async function getReportCases(congregationId: string): Promise<ReportCase[]> {
