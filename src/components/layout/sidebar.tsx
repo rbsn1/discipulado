@@ -12,6 +12,7 @@ import {
   Settings,
   LogOut,
   Heart,
+  BarChart2,
 } from 'lucide-react'
 import { logout } from '@/lib/actions/auth'
 import type { Profile } from '@/types'
@@ -24,7 +25,8 @@ const navItems = [
   { href: '/confraternizacao', label: 'Boas Vindas', icon: CalendarDays, color: 'text-amber-400' },
   { href: '/turmas', label: 'Turmas', icon: BookOpen, color: 'text-emerald-400' },
   { href: '/pos-discipulado', label: 'Integração', icon: Star, color: 'text-violet-400' },
-  { href: '/admin', label: 'Administração', icon: Settings, color: 'text-slate-400' },
+  { href: '/relatorios', label: 'Relatórios', icon: BarChart2, color: 'text-teal-400', adminOnly: true },
+  { href: '/admin', label: 'Administração', icon: Settings, color: 'text-slate-400', adminOnly: true },
 ]
 
 interface SidebarProps {
@@ -44,9 +46,7 @@ export function Sidebar({ profile, congregationName, theme }: SidebarProps) {
   const sidebarBg = theme?.sidebarColor ?? '#0F172A'
 
   const canAccessAdmin = ['ADMIN_PLATAFORMA', 'ADMIN_DISCIPULADO'].includes(profile.role)
-  const visibleItems = navItems.filter(
-    item => item.href !== '/admin' || canAccessAdmin
-  )
+  const visibleItems = navItems.filter(item => !item.adminOnly || canAccessAdmin)
 
   return (
     <aside

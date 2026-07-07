@@ -53,6 +53,34 @@ export async function updatePostDiscipleship(
   return { success: true }
 }
 
+export async function confirmDepartmentContact(caseId: string) {
+  const supabase = await createClient()
+  const profile = await getCurrentProfile()
+  if (!profile) return { error: 'Não autorizado' }
+
+  const { error } = await supabase
+    .from('post_discipleship')
+    .update({
+      department_contacted_at: new Date().toISOString(),
+      department_contacted_by: profile.id,
+      integration_status: 'INTEGRADO',
+      updated_by: profile.id,
+    })
+    .eq('case_id', caseId)
+
+  if (error) return { error: error.message }
+
+  await supabase.from('case_events').insert({
+    case_id: caseId,
+    type: 'POS_DISCIPULADO',
+    description: 'Departamento confirmou contato com o discipulando',
+    metadata: { confirmed_by: profile.id },
+    created_by: profile.id,
+  })
+
+  return { success: true }
+}
+
 export async function getPostDiscipleshipCases(congregationId: string) {
   const supabase = await createClient()
   const { data, error } = await supabase

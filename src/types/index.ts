@@ -250,6 +250,8 @@ export interface PostDiscipleship {
   baptism_status: BaptismStatus
   department_name: string | null
   notes: string | null
+  department_contacted_at: string | null
+  department_contacted_by: string | null
   updated_by: string | null
   created_at: string
   updated_at: string
