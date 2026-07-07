@@ -19,11 +19,11 @@ import { ROLE_LABEL } from '@/lib/utils'
 
 const navItems = [
   { href: '/painel', label: 'Painel', icon: LayoutDashboard, color: 'text-indigo-400' },
-  { href: '/acolhimento', label: 'Fila de Acolhimento', icon: Heart, color: 'text-rose-400' },
-  { href: '/discipulandos', label: 'Discipulandos', icon: Users, color: 'text-sky-400' },
+  { href: '/discipulandos', label: 'Acolhimento', icon: Users, color: 'text-sky-400' },
+  { href: '/acolhimento', label: 'Jornada', icon: Heart, color: 'text-rose-400' },
+  { href: '/confraternizacao', label: 'Boas Vindas', icon: CalendarDays, color: 'text-amber-400' },
   { href: '/turmas', label: 'Turmas', icon: BookOpen, color: 'text-emerald-400' },
-  { href: '/confraternizacao', label: 'Confraternização', icon: CalendarDays, color: 'text-amber-400' },
-  { href: '/pos-discipulado', label: 'Pós-Discipulado', icon: Star, color: 'text-violet-400' },
+  { href: '/pos-discipulado', label: 'Integração', icon: Star, color: 'text-violet-400' },
   { href: '/admin', label: 'Administração', icon: Settings, color: 'text-slate-400' },
 ]
 

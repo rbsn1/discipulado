@@ -61,6 +61,9 @@ export interface Congregation {
   name: string
   timezone: string
   is_active: boolean
+  logo_url?: string | null
+  accent_color?: string | null
+  sidebar_color?: string | null
   created_at: string
   updated_at: string
 }
