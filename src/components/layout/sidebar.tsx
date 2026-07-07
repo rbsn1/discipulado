@@ -30,10 +30,18 @@ const navItems = [
 interface SidebarProps {
   profile: Profile
   congregationName?: string
+  theme?: {
+    logoUrl?:      string | null
+    accentColor?:  string
+    sidebarColor?: string
+  }
 }
 
-export function Sidebar({ profile, congregationName }: SidebarProps) {
+export function Sidebar({ profile, congregationName, theme }: SidebarProps) {
   const pathname = usePathname()
+
+  const accent  = theme?.accentColor  ?? '#4F46E5'
+  const sidebarBg = theme?.sidebarColor ?? '#0F172A'
 
   const canAccessAdmin = ['ADMIN_PLATAFORMA', 'ADMIN_DISCIPULADO'].includes(profile.role)
   const visibleItems = navItems.filter(
@@ -41,14 +49,25 @@ export function Sidebar({ profile, congregationName }: SidebarProps) {
   )
 
   return (
-    <aside className="flex h-screen w-64 flex-col bg-slate-900">
+    <aside
+      className="flex h-screen w-64 flex-col"
+      style={{ '--sb-accent': accent, background: sidebarBg } as React.CSSProperties}
+    >
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 py-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 shadow-lg shadow-indigo-900/50">
-          <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
+        <div
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl overflow-hidden shadow-lg"
+          style={{ background: accent }}
+        >
+          {theme?.logoUrl
+            ? <img src={theme.logoUrl} alt="Logo" className="h-full w-full object-cover" />
+            : (
+              <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            )
+          }
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-bold text-white tracking-wide">Discipulado</p>
@@ -79,7 +98,7 @@ export function Sidebar({ profile, congregationName }: SidebarProps) {
                   <Icon className={cn('h-4.5 w-4.5 shrink-0', active ? 'text-white' : color)} size={18} />
                   {label}
                   {active && (
-                    <span className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-400" />
+                    <span className="ml-auto h-1.5 w-1.5 rounded-full" style={{ background: accent }} />
                   )}
                 </Link>
               </li>
@@ -92,7 +111,7 @@ export function Sidebar({ profile, congregationName }: SidebarProps) {
       <div className="mx-4 mb-1 h-px bg-slate-800" />
       <div className="px-4 py-4">
         <div className="mb-3 flex items-center gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white" style={{ background: accent }}>
             {profile.name.charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0">
