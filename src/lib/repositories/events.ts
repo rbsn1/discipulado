@@ -1,16 +1,33 @@
 import { createClient } from '@/lib/supabase/server'
 import type { Event, EventConfirmation } from '@/types'
 
-export async function getEvents(congregationId: string) {
+export interface EventWithCounts extends Event {
+  confirmed_count: number
+  attended_count: number
+}
+
+export async function getEvents(congregationId: string): Promise<EventWithCounts[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('events')
-    .select('*')
+    .select(`
+      *,
+      event_confirmations ( confirmed, attended )
+    `)
     .eq('congregation_id', congregationId)
     .order('date', { ascending: false })
 
   if (error) throw error
-  return data as Event[]
+
+  return (data ?? []).map((ev: any) => {
+    const confs: { confirmed: boolean; attended: boolean }[] = ev.event_confirmations ?? []
+    return {
+      ...ev,
+      event_confirmations: undefined,
+      confirmed_count: confs.filter(c => c.confirmed).length,
+      attended_count: confs.filter(c => c.attended).length,
+    } as EventWithCounts
+  })
 }
 
 export async function getEventById(id: string) {
