@@ -1432,3 +1432,69 @@ CREATE POLICY "congregations_update" ON congregations FOR UPDATE
 ALTER TABLE post_discipleship
   ADD COLUMN IF NOT EXISTS department_contacted_at  timestamptz,
   ADD COLUMN IF NOT EXISTS department_contacted_by  uuid references profiles(id);
+
+
+-- =============================================================
+-- 006_auto_module_progress.sql
+-- Atualização automática do progresso de módulos pela chamada
+-- =============================================================
+
+create or replace function auto_advance_module_progress()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_module_template_id  uuid;
+  v_case_id             uuid;
+begin
+  if (TG_OP = 'DELETE') then
+    return old;
+  end if;
+
+  if new.status != 'PRESENTE' then
+    return new;
+  end if;
+
+  select module_template_id
+  into   v_module_template_id
+  from   lessons
+  where  id = new.lesson_id;
+
+  if v_module_template_id is null then
+    return new;
+  end if;
+
+  select id
+  into   v_case_id
+  from   discipleship_cases
+  where  disciple_id = new.disciple_id
+    and  status in ('EM_DISCIPULADO', 'PAUSADO', 'PENDENTE_MATRICULA')
+  order by created_at desc
+  limit 1;
+
+  if v_case_id is null then
+    return new;
+  end if;
+
+  update case_module_progress
+  set
+    status     = 'EM_ANDAMENTO',
+    started_at = coalesce(started_at, now()),
+    updated_at = now()
+  where case_id            = v_case_id
+    and module_template_id = v_module_template_id
+    and status             = 'NAO_INICIADO';
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_auto_module_progress on attendance_items;
+
+create trigger trg_auto_module_progress
+  after insert or update of status
+  on attendance_items
+  for each row
+  execute function auto_advance_module_progress();

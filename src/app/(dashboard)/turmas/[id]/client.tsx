@@ -235,7 +235,10 @@ export function TurmaDetailClient({ turma, modules, currentProfile }: Props) {
                     <p className="font-medium text-gray-900">{formatDate(l.date)}</p>
                     {l.topic && <p className="text-sm text-gray-500">{l.topic}</p>}
                     {l.module_templates && (
-                      <p className="text-xs text-blue-600 mt-0.5">{l.module_templates.title}</p>
+                      <p className="text-xs mt-0.5 flex items-center gap-1 text-indigo-600">
+                        <span title="Presença nesta aula avança o módulo automaticamente">⚡</span>
+                        {l.module_templates.title}
+                      </p>
                     )}
                   </div>
                   {canManage && (
@@ -277,6 +280,11 @@ export function TurmaDetailClient({ turma, modules, currentProfile }: Props) {
             placeholder="Nenhum"
             options={modules.map(m => ({ value: m.id, label: m.title }))}
           />
+          {lessonModule && (
+            <p className="rounded-lg bg-indigo-50 px-3 py-2 text-xs text-indigo-700">
+              ⚡ Alunos marcados como <strong>Presente</strong> nesta aula terão o módulo <strong>"{modules.find(m => m.id === lessonModule)?.title}"</strong> avançado automaticamente para <strong>Em Andamento</strong>.
+            </p>
+          )}
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setShowNewLesson(false)}>Cancelar</Button>
             <Button onClick={handleCreateLesson} loading={loading}>Criar aula</Button>
