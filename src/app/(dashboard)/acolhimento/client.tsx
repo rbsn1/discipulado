@@ -254,23 +254,23 @@ export function AcolhimentoClient({
   return (
     <>
       {/* ── Cabeçalho ─────────────────────────────────────────────────────────── */}
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-gray-900">Fila de Acolhimento</h1>
+      <div className="mb-4 md:mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <h1 className="text-xl md:text-2xl font-bold text-gray-900">Fila de Acolhimento</h1>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           {/* Busca */}
           <Input
             placeholder="Buscar discipulando..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="max-w-xs h-9"
+            className="w-full sm:max-w-xs h-9"
           />
 
           {/* Filtro por discipulador */}
           <select
             value={filterDiscipulador}
             onChange={e => setFilterDiscipulador(e.target.value)}
-            className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+            className="h-9 w-full sm:w-auto rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             aria-label="Filtrar por discipulador"
           >
             <option value="">Todos os discipuladores</option>

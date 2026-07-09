@@ -30,7 +30,7 @@ export default async function AcolhimentoPage({
   const disciplesSemCase = disciples.filter(d => !casedDiscipleIds.has(d.id))
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       <AcolhimentoClient
         cases={cases}
         discipuladores={discipuladoresAtivos}

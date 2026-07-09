@@ -10,7 +10,7 @@ export default async function ConfraternizacaoPage() {
   const events = await getEvents(profile.congregation_id)
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-4 md:p-6 max-w-5xl mx-auto">
       <ConfraternizacaoClient
         events={events}
         congregationId={profile.congregation_id}

@@ -29,19 +29,19 @@ interface StatCardProps {
 
 function StatCard({ title, value, icon: Icon, href, accent, iconBg, iconColor }: StatCardProps) {
   const content = (
-    <div className={`group relative overflow-hidden rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md ${href ? 'cursor-pointer' : ''}`}>
+    <div className={`group relative overflow-hidden rounded-xl border border-gray-100 bg-white p-4 md:p-5 shadow-sm transition-all hover:shadow-md ${href ? 'cursor-pointer' : ''}`}>
       <div className={`absolute inset-x-0 top-0 h-0.5 ${accent}`} />
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-400">{title}</p>
-          <p className="mt-2 text-3xl font-bold text-gray-900">{value}</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-400 leading-tight">{title}</p>
+          <p className="mt-1.5 text-2xl md:text-3xl font-bold text-gray-900">{value}</p>
         </div>
-        <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconBg}`}>
-          <Icon className={`h-5 w-5 ${iconColor}`} />
+        <div className={`flex h-8 w-8 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-xl ${iconBg}`}>
+          <Icon className={`h-4 w-4 md:h-5 md:w-5 ${iconColor}`} />
         </div>
       </div>
       {href && (
-        <div className="mt-3 flex items-center gap-1 text-xs text-gray-400 group-hover:text-gray-600 transition-colors">
+        <div className="mt-2 md:mt-3 flex items-center gap-1 text-xs text-gray-400 group-hover:text-gray-600 transition-colors">
           Ver detalhes <ChevronRight className="h-3 w-3" />
         </div>
       )}
@@ -99,9 +99,9 @@ export default async function PainelPage() {
 
   if (profile.role === 'ADMIN_PLATAFORMA' && !profile.congregation_id) {
     return (
-      <div className="p-8 max-w-4xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Painel da Plataforma</h1>
+      <div className="p-4 md:p-8 max-w-4xl mx-auto">
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Painel da Plataforma</h1>
           <p className="mt-1 text-sm text-gray-500">Administração global do sistema</p>
         </div>
         <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-6">
@@ -183,13 +183,13 @@ export default async function PainelPage() {
     stats.sem_contato_recente > 0
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Painel</h1>
+    <div className="p-4 md:p-8 max-w-6xl mx-auto">
+      <div className="mb-6 md:mb-8">
+        <h1 className="text-xl md:text-2xl font-bold text-gray-900">Painel</h1>
         <p className="mt-1 text-sm text-gray-500">Visão geral do discipulado da congregação</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 mb-10">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 mb-8 md:mb-10">
         {statCards.map((card) => (
           <StatCard key={card.title} {...card} />
         ))}

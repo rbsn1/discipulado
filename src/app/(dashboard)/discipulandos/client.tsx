@@ -71,8 +71,8 @@ export function DisciplesClientPage({ disciples, congregationId, currentUserId, 
         </Button>
       </form>
 
-      <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="rounded-lg border border-gray-200 bg-white overflow-x-auto">
+        <table className="w-full text-sm min-w-[560px]">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
               <th className="px-4 py-3 text-left font-medium text-gray-600">Nome</th>

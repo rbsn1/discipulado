@@ -19,7 +19,7 @@ export default async function DiscipulandosPage({
   const disciples = await getDisciples(profile.congregation_id, search)
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-4 md:p-6 max-w-6xl mx-auto">
       <DisciplesClientPage
         disciples={disciples}
         congregationId={profile.congregation_id}

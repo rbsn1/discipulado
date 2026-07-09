@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/lib/repositories/profiles'
 import { createClient } from '@/lib/supabase/server'
-import { Sidebar } from '@/components/layout/sidebar'
+import { DashboardShell } from '@/components/layout/dashboard-shell'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const profile = await getCurrentProfile()
@@ -28,11 +28,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar profile={profile} congregationName={congregationName} theme={theme} />
-      <main className="flex-1 overflow-y-auto bg-gray-50">
-        {children}
-      </main>
-    </div>
+    <DashboardShell
+      profile={profile}
+      congregationName={congregationName}
+      theme={theme}
+    >
+      {children}
+    </DashboardShell>
   )
 }
