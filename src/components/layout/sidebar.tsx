@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { deriveTheme } from '@/lib/theme'
 import {
   LayoutDashboard,
   Users,
@@ -20,14 +21,14 @@ import type { Profile } from '@/types'
 import { ROLE_LABEL } from '@/lib/utils'
 
 const navItems = [
-  { href: '/painel',           label: 'Painel',         icon: LayoutDashboard, color: 'text-indigo-400' },
-  { href: '/discipulandos',    label: 'Acolhimento',    icon: Users,           color: 'text-sky-400'    },
-  { href: '/acolhimento',      label: 'Jornada',        icon: Heart,           color: 'text-rose-400'   },
-  { href: '/confraternizacao', label: 'Boas Vindas',    icon: CalendarDays,    color: 'text-amber-400'  },
-  { href: '/turmas',           label: 'Turmas',         icon: BookOpen,        color: 'text-emerald-400'},
-  { href: '/pos-discipulado',  label: 'Integração',     icon: Star,            color: 'text-violet-400' },
-  { href: '/relatorios',       label: 'Relatórios',     icon: BarChart2,       color: 'text-teal-400',   adminOnly: true },
-  { href: '/admin',            label: 'Administração',  icon: Settings,        color: 'text-slate-400',  adminOnly: true },
+  { href: '/painel',           label: 'Painel',        icon: LayoutDashboard, color: 'text-indigo-400' },
+  { href: '/discipulandos',    label: 'Acolhimento',   icon: Users,           color: 'text-sky-400'    },
+  { href: '/acolhimento',      label: 'Jornada',       icon: Heart,           color: 'text-rose-400'   },
+  { href: '/confraternizacao', label: 'Boas Vindas',   icon: CalendarDays,    color: 'text-amber-400'  },
+  { href: '/turmas',           label: 'Turmas',        icon: BookOpen,        color: 'text-emerald-400'},
+  { href: '/pos-discipulado',  label: 'Integração',    icon: Star,            color: 'text-violet-400' },
+  { href: '/relatorios',       label: 'Relatórios',    icon: BarChart2,       color: 'text-teal-400',   adminOnly: true },
+  { href: '/admin',            label: 'Administração', icon: Settings,        color: 'text-slate-400',  adminOnly: true },
 ]
 
 interface SidebarProps {
@@ -38,16 +39,13 @@ interface SidebarProps {
     accentColor?:  string
     sidebarColor?: string
   }
-  /** Controlado pelo layout pai no mobile */
   open?: boolean
   onClose?: () => void
 }
 
 export function Sidebar({ profile, congregationName, theme, open = true, onClose }: SidebarProps) {
   const pathname = usePathname()
-
-  const accent    = theme?.accentColor  ?? '#4F46E5'
-  const sidebarBg = theme?.sidebarColor ?? '#0F172A'
+  const palette  = deriveTheme(theme)
 
   const canAccessAdmin = ['ADMIN_PLATAFORMA', 'ADMIN_DISCIPULADO'].includes(profile.role)
   const visibleItems   = navItems.filter(item => !item.adminOnly || canAccessAdmin)
@@ -66,21 +64,33 @@ export function Sidebar({ profile, congregationName, theme, open = true, onClose
       {/* ── Painel lateral ─────────────────────────────────────────────── */}
       <aside
         className={cn(
-          // Base: drawer off-screen no mobile, sempre visível no desktop
           'fixed inset-y-0 left-0 z-30 flex h-full w-64 flex-col',
           'transition-transform duration-200 ease-in-out',
           'md:relative md:translate-x-0 md:z-auto',
-          // Mobile: aberto ou fechado
           open ? 'translate-x-0' : '-translate-x-full',
         )}
-        style={{ '--sb-accent': accent, background: sidebarBg } as React.CSSProperties}
+        style={{
+          background: `linear-gradient(180deg, ${palette.sidebarDark} 0%, ${palette.sidebarBg} 100%)`,
+        }}
         aria-label="Menu de navegação"
       >
-        {/* Logo + botão fechar (mobile) */}
-        <div className="flex items-center gap-3 px-5 py-5">
+        {/* Brilho de topo */}
+        <div
+          className="pointer-events-none absolute -top-20 left-1/2 h-40 w-40 -translate-x-1/2 rounded-full blur-3xl"
+          style={{ background: palette.glowColor }}
+        />
+
+        {/* Borda direita luminosa */}
+        <div
+          className="pointer-events-none absolute inset-y-0 right-0 w-px"
+          style={{ background: `linear-gradient(180deg, transparent, ${palette.accentRing}, transparent)` }}
+        />
+
+        {/* ── Logo ── */}
+        <div className="relative flex items-center gap-3 px-5 py-5">
           <div
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl overflow-hidden shadow-lg"
-            style={{ background: accent }}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl overflow-hidden shadow-lg ring-1 ring-white/10"
+            style={{ background: `linear-gradient(135deg, ${palette.accentLight}, ${palette.accent})` }}
           >
             {theme?.logoUrl
               ? <img src={theme.logoUrl} alt="Logo" className="h-full w-full object-cover" />
@@ -95,14 +105,15 @@ export function Sidebar({ profile, congregationName, theme, open = true, onClose
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-bold text-white tracking-wide">Discipulado</p>
             {congregationName && (
-              <p className="truncate text-xs text-slate-400">{congregationName}</p>
+              <p className="truncate text-xs" style={{ color: palette.mutedText }}>
+                {congregationName}
+              </p>
             )}
           </div>
-          {/* Fechar drawer no mobile */}
           {onClose && (
             <button
               onClick={onClose}
-              className="ml-auto flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-white/10 hover:text-white md:hidden"
+              className="ml-auto flex h-7 w-7 items-center justify-center rounded-lg text-white/40 hover:bg-white/10 hover:text-white md:hidden"
               aria-label="Fechar menu"
             >
               <X className="h-4 w-4" />
@@ -110,9 +121,10 @@ export function Sidebar({ profile, congregationName, theme, open = true, onClose
           )}
         </div>
 
-        <div className="mx-4 mb-3 h-px bg-slate-800" />
+        {/* Separador */}
+        <div className="mx-4 mb-3 h-px" style={{ background: palette.divider }} />
 
-        {/* Nav */}
+        {/* ── Nav ── */}
         <nav className="flex-1 overflow-y-auto px-3 py-1" aria-label="Navegação principal">
           <ul className="flex flex-col gap-0.5">
             {visibleItems.map(({ href, label, icon: Icon, color }) => {
@@ -121,19 +133,25 @@ export function Sidebar({ profile, congregationName, theme, open = true, onClose
                 <li key={href}>
                   <Link
                     href={href}
-                    onClick={onClose}   /* fecha o drawer no mobile ao navegar */
+                    onClick={onClose}
                     className={cn(
                       'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
-                      active
-                        ? 'bg-white/10 text-white'
-                        : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+                      active ? 'text-white' : 'text-white/50 hover:text-white/90',
                     )}
+                    style={active ? { background: palette.accentSubtle } : undefined}
                     aria-current={active ? 'page' : undefined}
                   >
-                    <Icon className={cn('h-4.5 w-4.5 shrink-0', active ? 'text-white' : color)} size={18} />
+                    <Icon
+                      className={cn('h-4.5 w-4.5 shrink-0', !active && color)}
+                      size={18}
+                      style={active ? { color: palette.accentLight } : undefined}
+                    />
                     {label}
                     {active && (
-                      <span className="ml-auto h-1.5 w-1.5 rounded-full" style={{ background: accent }} />
+                      <span
+                        className="ml-auto h-1.5 w-1.5 rounded-full"
+                        style={{ background: palette.accent }}
+                      />
                     )}
                   </Link>
                 </li>
@@ -142,25 +160,29 @@ export function Sidebar({ profile, congregationName, theme, open = true, onClose
           </ul>
         </nav>
 
-        {/* Footer com usuário */}
-        <div className="mx-4 mb-1 h-px bg-slate-800" />
+        {/* Separador */}
+        <div className="mx-4 mb-1 h-px" style={{ background: palette.divider }} />
+
+        {/* ── Footer ── */}
         <div className="px-4 py-4">
           <div className="mb-3 flex items-center gap-3">
             <div
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-              style={{ background: accent }}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ring-1 ring-white/10"
+              style={{ background: palette.accent }}
             >
               {profile.name.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-white">{profile.name}</p>
-              <p className="truncate text-xs text-slate-400">{ROLE_LABEL[profile.role]}</p>
+              <p className="truncate text-xs" style={{ color: palette.mutedText }}>
+                {ROLE_LABEL[profile.role]}
+              </p>
             </div>
           </div>
           <form action={logout}>
             <button
               type="submit"
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-200"
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-white/40 transition-colors hover:bg-white/5 hover:text-white/80"
             >
               <LogOut className="h-3.5 w-3.5" />
               Sair da conta

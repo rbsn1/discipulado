@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Menu } from 'lucide-react'
+import { deriveTheme } from '@/lib/theme'
 import type { Profile } from '@/types'
 
 interface Props {
@@ -18,7 +19,7 @@ interface Props {
 
 export function DashboardShell({ profile, congregationName, theme, children }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const accent = theme?.accentColor ?? '#4F46E5'
+  const palette = deriveTheme(theme)
 
   return (
     <div className="flex h-[100dvh] overflow-hidden">
@@ -34,22 +35,25 @@ export function DashboardShell({ profile, congregationName, theme, children }: P
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* ── Header mobile ──────────────────────────────────────────── */}
         <header
-          className="flex h-14 shrink-0 items-center gap-3 border-b border-gray-200 bg-white px-4 md:hidden"
+          className="flex h-14 shrink-0 items-center gap-3 border-b px-4 md:hidden"
+          style={{
+            background: `linear-gradient(135deg, ${palette.sidebarDark} 0%, ${palette.sidebarBg} 100%)`,
+            borderColor: palette.accentRing,
+          }}
           aria-label="Cabeçalho mobile"
         >
           <button
             onClick={() => setSidebarOpen(true)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
             aria-label="Abrir menu"
             aria-expanded={sidebarOpen}
           >
             <Menu className="h-5 w-5" />
           </button>
 
-          {/* Logo / nome no header mobile */}
           <div
-            className="flex h-7 w-7 items-center justify-center rounded-lg overflow-hidden shadow"
-            style={{ background: accent }}
+            className="flex h-7 w-7 items-center justify-center rounded-lg overflow-hidden shadow ring-1 ring-white/10"
+            style={{ background: `linear-gradient(135deg, ${palette.accentLight}, ${palette.accent})` }}
           >
             {theme?.logoUrl
               ? <img src={theme.logoUrl} alt="Logo" className="h-full w-full object-cover" />
@@ -61,7 +65,7 @@ export function DashboardShell({ profile, congregationName, theme, children }: P
               )
             }
           </div>
-          <span className="text-sm font-semibold text-gray-900 truncate">
+          <span className="text-sm font-semibold text-white truncate">
             {congregationName ?? 'Discipulado'}
           </span>
         </header>
