@@ -3,6 +3,12 @@
  *
  * Todas as cores são geradas via manipulação de hex → rgb,
  * sem dependências externas. Funciona em Server e Client Components.
+ *
+ * Princípio de acessibilidade:
+ *   - Texto e ícones sobre fundos escuros SEMPRE derivam de branco com opacidade,
+ *     nunca do accent — garante contraste em qualquer tema.
+ *   - O accent é usado apenas para elementos interativos (indicadores, fundos
+ *     de item ativo, brilhos) onde o contraste é garantido estruturalmente.
  */
 
 export interface ThemeInput {
@@ -17,17 +23,30 @@ export interface ThemePalette {
   sidebarBg: string
   /** Versão escura do fundo (gradiente, overlay) */
   sidebarDark: string
-  /** Versão mais clara da cor de destaque para ícones/texto suave */
+  /** Versão clara do accent — usada apenas em ícones/texto do item ATIVO */
   accentLight: string
-  /** Versão muito suave do accent para fundos (10-15% opacidade) */
+  /** Fundo sutil do item ativo (accent com ~12% opacidade) */
   accentSubtle: string
   /** Anel/borda com 30% de opacidade do accent */
   accentRing: string
-  /** Separador (white/10 sobre o sidebar escuro) */
+  /** Separador: branco/7 — contraste garantido em qualquer fundo escuro */
   divider: string
-  /** Texto suave sobre fundo escuro */
+  /**
+   * Texto muted sobre fundo escuro.
+   * Sempre branco/45 — legível em qualquer tema, sem depender do accent.
+   */
   mutedText: string
-  /** Gradiente de fundo do painel esquerdo da login (3 stops) */
+  /**
+   * Texto/ícone inativo sobre fundo escuro.
+   * Sempre branco/50 — contraste mínimo garantido (WCAG AA para ícones decorativos).
+   */
+  navInactive: string
+  /**
+   * Texto/ícone inativo em hover.
+   * Sempre branco/85.
+   */
+  navHover: string
+  /** Gradiente de fundo do painel esquerdo da login */
   loginGradient: string
   /** Cor do brilho principal */
   glowColor: string
@@ -51,19 +70,16 @@ function rgbToHex(r: number, g: number, b: number): string {
     .join('')
 }
 
-/** Clareia (amount > 0) ou escurece (amount < 0) uma cor hex */
 function adjustBrightness(hex: string, amount: number): string {
   const [r, g, b] = hexToRgb(hex)
   return rgbToHex(r + amount, g + amount, b + amount)
 }
 
-/** Mistura hex com preto — darkens mais agressivo */
 function darken(hex: string, factor: number): string {
   const [r, g, b] = hexToRgb(hex)
   return rgbToHex(r * (1 - factor), g * (1 - factor), b * (1 - factor))
 }
 
-/** Retorna rgba string */
 function rgba(hex: string, alpha: number): string {
   const [r, g, b] = hexToRgb(hex)
   return `rgba(${r},${g},${b},${alpha})`
@@ -78,30 +94,32 @@ export function deriveTheme(input?: ThemeInput | null): ThemePalette {
   const accent    = input?.accentColor  || ACCENT_DEFAULT
   const sidebarBg = input?.sidebarColor || SIDEBAR_DEFAULT
 
-  // Fundo ainda mais escuro para gradiente
+  // Gradiente: fundo mais escuro no topo
   const sidebarDark = darken(sidebarBg, 0.35)
 
-  // Versão clara do accent (para ícones em estado inativo, texto suave)
+  // Versão clara do accent para o ícone/texto do ITEM ATIVO
   const accentLight = adjustBrightness(accent, 60)
 
-  // Versão muito sutil do accent (fundos de badge, hover)
-  const accentSubtle = rgba(accent, 0.12)
+  // Fundo do item ativo
+  const accentSubtle = rgba(accent, 0.14)
 
   // Anel/borda
   const accentRing = rgba(accent, 0.30)
 
-  // Separador sobre fundo escuro
-  const divider = 'rgba(255,255,255,0.07)'
+  // ── Cores de texto/ícone sempre baseadas em BRANCO ──────────────────────
+  // Garante legibilidade em qualquer fundo escuro, independente do accent.
 
-  // Texto muted sobre fundo escuro
-  const mutedText = rgba(accent, 0.45)
+  const divider    = 'rgba(255,255,255,0.07)'  // separadores
+  const mutedText  = 'rgba(255,255,255,0.40)'  // nome da congregação, role, etc.
+  const navInactive = 'rgba(255,255,255,0.50)' // texto/ícone de item inativo
+  const navHover    = 'rgba(255,255,255,0.85)' // texto/ícone ao passar o mouse
 
-  // Gradiente de login: do sidebar escuro para uma variação roxa/profunda
+  // Gradiente de login
   const loginGradient = `linear-gradient(135deg, ${sidebarDark} 0%, ${sidebarBg} 50%, ${darken(accent, 0.55)} 100%)`
 
-  // Brilhos
-  const glowColor     = rgba(accent, 0.22)
-  const glowSecondary = rgba(adjustBrightness(accent, -30), 0.18)
+  // Brilhos — decorativos, accent com baixa opacidade
+  const glowColor     = rgba(accent, 0.20)
+  const glowSecondary = rgba(adjustBrightness(accent, -30), 0.15)
 
   return {
     accent,
@@ -112,6 +130,8 @@ export function deriveTheme(input?: ThemeInput | null): ThemePalette {
     accentRing,
     divider,
     mutedText,
+    navInactive,
+    navHover,
     loginGradient,
     glowColor,
     glowSecondary,

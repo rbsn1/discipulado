@@ -21,14 +21,14 @@ import type { Profile } from '@/types'
 import { ROLE_LABEL } from '@/lib/utils'
 
 const navItems = [
-  { href: '/painel',           label: 'Painel',        icon: LayoutDashboard, color: 'text-indigo-400' },
-  { href: '/discipulandos',    label: 'Acolhimento',   icon: Users,           color: 'text-sky-400'    },
-  { href: '/acolhimento',      label: 'Jornada',       icon: Heart,           color: 'text-rose-400'   },
-  { href: '/confraternizacao', label: 'Boas Vindas',   icon: CalendarDays,    color: 'text-amber-400'  },
-  { href: '/turmas',           label: 'Turmas',        icon: BookOpen,        color: 'text-emerald-400'},
-  { href: '/pos-discipulado',  label: 'Integração',    icon: Star,            color: 'text-violet-400' },
-  { href: '/relatorios',       label: 'Relatórios',    icon: BarChart2,       color: 'text-teal-400',   adminOnly: true },
-  { href: '/admin',            label: 'Administração', icon: Settings,        color: 'text-slate-400',  adminOnly: true },
+  { href: '/painel',           label: 'Painel',        icon: LayoutDashboard },
+  { href: '/discipulandos',    label: 'Acolhimento',   icon: Users           },
+  { href: '/acolhimento',      label: 'Jornada',       icon: Heart           },
+  { href: '/confraternizacao', label: 'Boas Vindas',   icon: CalendarDays    },
+  { href: '/turmas',           label: 'Turmas',        icon: BookOpen        },
+  { href: '/pos-discipulado',  label: 'Integração',    icon: Star            },
+  { href: '/relatorios',       label: 'Relatórios',    icon: BarChart2,  adminOnly: true },
+  { href: '/admin',            label: 'Administração', icon: Settings,   adminOnly: true },
 ]
 
 interface SidebarProps {
@@ -124,27 +124,39 @@ export function Sidebar({ profile, congregationName, theme, open = true, onClose
         {/* Separador */}
         <div className="mx-4 mb-3 h-px" style={{ background: palette.divider }} />
 
-        {/* ── Nav ── */}
+        {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 py-1" aria-label="Navegação principal">
           <ul className="flex flex-col gap-0.5">
-            {visibleItems.map(({ href, label, icon: Icon, color }) => {
+            {visibleItems.map(({ href, label, icon: Icon }) => {
               const active = pathname === href || (href !== '/painel' && pathname.startsWith(href))
               return (
                 <li key={href}>
                   <Link
                     href={href}
                     onClick={onClose}
-                    className={cn(
-                      'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
-                      active ? 'text-white' : 'text-white/50 hover:text-white/90',
-                    )}
-                    style={active ? { background: palette.accentSubtle } : undefined}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150"
+                    style={
+                      active
+                        ? {
+                            background: palette.accentSubtle,
+                            color: '#ffffff',
+                          }
+                        : {
+                            color: palette.navInactive,
+                          }
+                    }
+                    onMouseEnter={e => {
+                      if (!active) (e.currentTarget as HTMLElement).style.color = palette.navHover
+                    }}
+                    onMouseLeave={e => {
+                      if (!active) (e.currentTarget as HTMLElement).style.color = palette.navInactive
+                    }}
                     aria-current={active ? 'page' : undefined}
                   >
                     <Icon
-                      className={cn('h-4.5 w-4.5 shrink-0', !active && color)}
+                      className="h-4.5 w-4.5 shrink-0"
                       size={18}
-                      style={active ? { color: palette.accentLight } : undefined}
+                      style={{ color: active ? palette.accentLight : 'inherit' }}
                     />
                     {label}
                     {active && (
