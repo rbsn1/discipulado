@@ -10,6 +10,7 @@ import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Plus, Building2, Pencil } from 'lucide-react'
 import { THEME_PRESETS, deriveTheme } from '@/lib/theme'
+import { LogoUploader } from '@/components/features/admin/logo-uploader'
 import type { Congregation } from '@/types'
 
 const TIMEZONE_OPTIONS = [
@@ -337,11 +338,10 @@ export function CongregacoesClient({ congregations }: Props) {
               </div>
             </div>
 
-            <Input
-              label="URL da logo"
-              value={editTarget.logoUrl}
-              onChange={e => setEditTarget({ ...editTarget, logoUrl: e.target.value })}
-              placeholder="https://storage.supabase.co/.../logo.png"
+            <LogoUploader
+              congregationId={editTarget.id}
+              currentUrl={editTarget.logoUrl}
+              onChange={url => setEditTarget({ ...editTarget, logoUrl: url })}
             />
 
             <div className="flex justify-end gap-2">
