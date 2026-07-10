@@ -151,6 +151,13 @@ export interface WorshipService {
   updated_at: string
 }
 
+export interface PlatformSettings {
+  id: number
+  login_verse_text: string
+  login_verse_reference: string
+  updated_at: string
+}
+
 export interface CaseModuleProgress {
   case_id: string
   module_template_id: string

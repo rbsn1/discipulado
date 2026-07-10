@@ -1,7 +1,7 @@
 import { getCurrentProfile } from '@/lib/repositories/profiles'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Users, BookOpen, Building2, Church } from 'lucide-react'
+import { Users, BookOpen, Building2, Church, Quote } from 'lucide-react'
 
 export default async function AdminPage() {
   const profile = await getCurrentProfile()
@@ -36,6 +36,13 @@ export default async function AdminPage() {
       title: 'Cultos',
       description: 'Configurar catálogo de cultos usado na origem do cadastro',
       adminOnly: false,
+    },
+    {
+      href: '/admin/tela-login',
+      icon: Quote,
+      title: 'Tela de login',
+      description: 'Editar o texto bíblico exibido na tela de login',
+      adminOnly: true,
     },
   ]
 
