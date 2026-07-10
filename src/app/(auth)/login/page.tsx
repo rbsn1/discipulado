@@ -76,15 +76,6 @@ export default async function LoginPage() {
       {/* ── Painel esquerdo ──────────────────────────────────────────────── */}
       <div className="relative hidden lg:flex lg:w-[48%] flex-col overflow-hidden bg-gradient-to-br from-indigo-950 via-[#0a0f1e] to-violet-950">
 
-        {/* Textura fina, sem brilhos nem blur */}
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage:
-              'repeating-linear-gradient(45deg, rgba(129,140,248,0.035) 0px, rgba(129,140,248,0.035) 1px, transparent 1px, transparent 6px)',
-          }}
-        />
-
         {/* Linha de horizonte, à direita */}
         <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-indigo-400/50 to-transparent" />
 
@@ -101,17 +92,14 @@ export default async function LoginPage() {
             </span>
           </div>
 
-          {/* Versículo — a tese da página */}
+          {/* Frase de propósito — a tese da página */}
           <div>
             <p
               className="text-3xl xl:text-[2.5rem] italic leading-[1.35] text-white"
               style={{ fontFamily: 'var(--font-display)', fontWeight: 400 }}
             >
-              "{verseText}"
+              Do primeiro contato ao envio, cada pessoa acompanhada até o fim.
             </p>
-            <cite className="mt-4 block text-sm not-italic tracking-wide text-indigo-300">
-              — {verseReference}
-            </cite>
 
             {/* Régua */}
             <div className="my-8 h-px w-16 bg-indigo-400/60" />
@@ -135,9 +123,12 @@ export default async function LoginPage() {
             </ol>
           </div>
 
-          {/* Rodapé */}
+          {/* Rodapé — versículo */}
           <p className="max-w-sm text-sm italic leading-relaxed text-slate-400" style={{ fontFamily: 'var(--font-display)' }}>
-            Do primeiro contato ao envio — cada pessoa, acompanhada até o fim.
+            "{verseText}"
+            <cite className="mt-2 block text-xs not-italic tracking-wide text-indigo-300/70">
+              — {verseReference}
+            </cite>
           </p>
         </div>
       </div>
