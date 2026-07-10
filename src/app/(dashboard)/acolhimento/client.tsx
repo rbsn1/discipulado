@@ -270,7 +270,7 @@ export function AcolhimentoClient({
           <select
             value={filterDiscipulador}
             onChange={e => setFilterDiscipulador(e.target.value)}
-            className="h-9 w-full sm:w-auto rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+            className="h-9 w-full sm:w-auto rounded-lg border border-gray-200 bg-white px-3 text-base sm:text-sm text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             aria-label="Filtrar por discipulador"
           >
             <option value="">Todos os discipuladores</option>

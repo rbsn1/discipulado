@@ -270,6 +270,7 @@ export function EventDetailClient({ event, activeCases, currentProfile }: Props)
         <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
           <p className="font-semibold text-gray-900">Lista de participantes</p>
         </div>
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 text-left">
@@ -359,6 +360,7 @@ export function EventDetailClient({ event, activeCases, currentProfile }: Props)
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* ── Adicionar participantes ── */}
@@ -376,7 +378,7 @@ export function EventDetailClient({ event, activeCases, currentProfile }: Props)
                 value={addSearch}
                 onChange={e => setAddSearch(e.target.value)}
                 placeholder="Buscar por nome ou telefone..."
-                className="h-8 w-full rounded-lg border border-gray-200 bg-white pl-8 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                className="h-8 w-full rounded-lg border border-gray-200 bg-white pl-8 pr-3 text-base sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
               />
             </div>
           </div>
@@ -386,6 +388,7 @@ export function EventDetailClient({ event, activeCases, currentProfile }: Props)
               {addSearch ? 'Nenhum discipulando encontrado' : 'Todos os discipulandos ativos já foram adicionados'}
             </p>
           ) : (
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <tbody className="divide-y divide-gray-50">
                 {unconfirmedCases.map(c => (
@@ -413,6 +416,7 @@ export function EventDetailClient({ event, activeCases, currentProfile }: Props)
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       )}

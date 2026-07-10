@@ -129,7 +129,7 @@ export function UsuariosClient({ profiles, congregations, currentProfile }: Prop
 
       {error && <Alert type="error" className="mb-4">{error}</Alert>}
 
-      <div className="rounded-xl border border-gray-100 bg-white overflow-hidden shadow-sm">
+      <div className="rounded-xl border border-gray-100 bg-white overflow-x-auto shadow-sm">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">

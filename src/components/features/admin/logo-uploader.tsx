@@ -165,7 +165,7 @@ export function LogoUploader({ congregationId, currentUrl, onChange }: LogoUploa
           value={preview.includes('blob:') ? '' : preview}
           onChange={e => { setPreview(e.target.value); onChange(e.target.value) }}
           placeholder="https://exemplo.com/logo.png"
-          className="mt-2 block h-9 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+          className="mt-2 block h-9 w-full rounded-lg border border-gray-200 bg-white px-3 text-base sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
         />
       </details>
     </div>

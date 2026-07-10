@@ -385,7 +385,7 @@ export function DiscipleDetailClient({
                             value={m.status}
                             onChange={e => handleModuleStatus(m.module_template_id, e.target.value)}
                             className={cn(
-                              'rounded-full px-2 py-0.5 text-xs font-medium border-0 cursor-pointer',
+                              'rounded-full px-2 py-0.5 text-base sm:text-xs font-medium border-0 cursor-pointer',
                               MODULE_STATUS_COLOR[m.status as keyof typeof MODULE_STATUS_COLOR]
                             )}
                           >
