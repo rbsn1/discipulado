@@ -1,17 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
-import type { Disciple, CreateDiscipleInput, DiscipleWithCase } from '@/types'
+import type { Disciple, CreateDiscipleInput, DiscipleListItem } from '@/types'
 
-export async function getDisciples(congregationId: string, search?: string) {
+// Só os campos renderizados na tabela de /discipulandos (ver DiscipleListItem)
+export async function getDisciples(congregationId: string, search?: string): Promise<DiscipleListItem[]> {
   const supabase = await createClient()
   let query = supabase
     .from('disciples')
     .select(`
-      *,
-      worship_services ( id, name ),
-      discipleship_cases (
-        id, status, stage, assigned_to, attendance_rate,
-        profiles!assigned_to ( id, name )
-      )
+      id, full_name, phone, origin, created_at,
+      worship_services ( name ),
+      discipleship_cases ( status )
     `)
     .eq('congregation_id', congregationId)
     .order('full_name')
@@ -22,23 +20,43 @@ export async function getDisciples(congregationId: string, search?: string) {
 
   const { data, error } = await query
   if (error) throw error
-  return data as DiscipleWithCase[]
+  return data as unknown as DiscipleListItem[]
 }
 
+// Versão enxuta pra casos que só precisam de id/nome/telefone (ex.: dropdown
+// de "discipulandos sem case" no acolhimento) — evita os joins pesados de getDisciples().
+export async function getDisciplesLite(
+  congregationId: string
+): Promise<Pick<Disciple, 'id' | 'full_name' | 'phone'>[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('disciples')
+    .select('id, full_name, phone')
+    .eq('congregation_id', congregationId)
+    .order('full_name')
+
+  if (error) throw error
+  return data as Pick<Disciple, 'id' | 'full_name' | 'phone'>[]
+}
+
+// Colunas trazidas = exatamente o que a tela de detalhe do discipulando
+// (page.tsx -> client.tsx -> DiscipleForm) lê hoje.
 export async function getDiscipleById(id: string) {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('disciples')
     .select(`
-      *,
-      worship_services ( id, name ),
-      class_enrollments ( id, active, class_id, classes ( id, name, shift ) ),
+      id, congregation_id, full_name, phone, email, birth_date, conversion_date,
+      origin, worship_service_id, address, notes,
+      worship_services ( name ),
+      class_enrollments ( active, classes ( name ) ),
       discipleship_cases (
-        *,
-        profiles!assigned_to ( id, name ),
+        id, status, stage, attendance_rate, total_lessons, present_count,
+        justified_count, absence_count, welcomed_on, last_contact_at,
+        profiles!assigned_to ( name ),
         case_module_progress (
-          *,
-          module_templates ( id, title, sort_order )
+          module_template_id, status, completed_at,
+          module_templates ( title, sort_order )
         )
       )
     `)

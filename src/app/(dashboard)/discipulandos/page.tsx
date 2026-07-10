@@ -19,7 +19,7 @@ export default async function DiscipulandosPage({
   const { search } = await searchParams
   const [disciples, worshipServices] = await Promise.all([
     getDisciples(profile.congregation_id, search),
-    getWorshipServices(profile.congregation_id),
+    getWorshipServices(profile.congregation_id, { activeOnly: true }),
   ])
 
   return (
@@ -29,7 +29,7 @@ export default async function DiscipulandosPage({
         congregationId={profile.congregation_id}
         currentUserId={profile.id}
         search={search}
-        worshipServices={worshipServices.filter(s => s.is_active)}
+        worshipServices={worshipServices}
       />
     </div>
   )

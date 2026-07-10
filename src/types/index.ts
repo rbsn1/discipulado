@@ -105,6 +105,18 @@ export interface DiscipleWithCase extends Disciple {
   worship_services: Pick<WorshipService, 'id' | 'name'> | null
 }
 
+// Versão enxuta usada na listagem de /discipulandos — só os campos
+// realmente renderizados na tabela (ver getDisciples em repositories/disciples.ts)
+export interface DiscipleListItem {
+  id: string
+  full_name: string
+  phone: string | null
+  origin: string | null
+  created_at: string
+  worship_services: Pick<WorshipService, 'name'> | null
+  discipleship_cases: Pick<DiscipleshipCase, 'status'>[]
+}
+
 export interface DiscipleshipCase {
   id: string
   disciple_id: string
@@ -129,6 +141,21 @@ export interface DiscipleshipCaseWithRelations extends DiscipleshipCase {
   disciples: Disciple
   profiles: Pick<Profile, 'id' | 'name'> | null
   case_module_progress: CaseModuleProgress[]
+}
+
+// Versão enxuta usada nas listagens de cases (acolhimento, confraternização) —
+// só os campos realmente renderizados (ver getCases em repositories/cases.ts)
+export interface CaseListItem {
+  id: string
+  disciple_id: string
+  status: CaseStatus
+  assigned_to: string | null
+  welcomed_on: string | null
+  last_contact_at: string | null
+  attendance_rate: number
+  created_at: string
+  disciples: Pick<Disciple, 'full_name' | 'phone'>
+  profiles: Pick<Profile, 'name'> | null
 }
 
 export interface ModuleTemplate {

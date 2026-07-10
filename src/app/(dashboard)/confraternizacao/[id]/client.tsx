@@ -20,7 +20,7 @@ import {
   Search,
   UserPlus,
 } from 'lucide-react'
-import type { Profile, DiscipleshipCaseWithRelations, ClassShift, EventStatus } from '@/types'
+import type { Profile, CaseListItem, ClassShift, EventStatus } from '@/types'
 
 // ─── Tipos locais ────────────────────────────────────────────────────────────
 
@@ -50,7 +50,7 @@ interface EventDetail {
 
 interface Props {
   event: EventDetail
-  activeCases: DiscipleshipCaseWithRelations[]
+  activeCases: CaseListItem[]
   currentProfile: Profile
 }
 

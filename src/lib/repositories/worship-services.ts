@@ -1,14 +1,20 @@
 import { createClient } from '@/lib/supabase/server'
 import type { WorshipService } from '@/types'
 
-export async function getWorshipServices(congregationId: string): Promise<WorshipService[]> {
+export async function getWorshipServices(
+  congregationId: string,
+  options?: { activeOnly?: boolean }
+): Promise<WorshipService[]> {
   const supabase = await createClient()
-  const { data, error } = await supabase
+  let query = supabase
     .from('worship_services')
     .select('*')
     .eq('congregation_id', congregationId)
     .order('name')
 
+  if (options?.activeOnly) query = query.eq('is_active', true)
+
+  const { data, error } = await query
   if (error) throw error
   return data as WorshipService[]
 }

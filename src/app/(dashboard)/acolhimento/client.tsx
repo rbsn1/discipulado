@@ -28,7 +28,7 @@ import {
   X,
 } from 'lucide-react'
 import type {
-  DiscipleshipCaseWithRelations,
+  CaseListItem,
   CaseStatus,
   Profile,
   UserRole,
@@ -59,9 +59,9 @@ const PAGE_SIZE = 20
 // ─── Props ─────────────────────────────────────────────────────────────────────
 
 interface Props {
-  cases: DiscipleshipCaseWithRelations[]
+  cases: CaseListItem[]
   discipuladores: Profile[]
-  disciplesSemCase: Disciple[]
+  disciplesSemCase: Pick<Disciple, 'id' | 'full_name' | 'phone'>[]
   congregationId: string
   currentUserId: string
   currentRole: UserRole
@@ -84,7 +84,7 @@ function daysSince(date: string | null): number | null {
 }
 
 /** Retorna prioridade numérica: menor = mais urgente */
-function casePriority(c: DiscipleshipCaseWithRelations): number {
+function casePriority(c: CaseListItem): number {
   let score = 0
   const crit = getAttendanceCriticality(c.attendance_rate)
   if (crit === 'critical') score -= 30
@@ -438,7 +438,7 @@ export function AcolhimentoClient({
 // ─── Card de case ──────────────────────────────────────────────────────────────
 
 interface CaseCardProps {
-  c: DiscipleshipCaseWithRelations
+  c: CaseListItem
   status: CaseStatus
   loading: string | null
   canManage: boolean

@@ -1,7 +1,7 @@
 import { getCurrentProfile } from '@/lib/repositories/profiles'
 import { getCases } from '@/lib/repositories/cases'
-import { getProfilesByCongrегation } from '@/lib/repositories/profiles'
-import { getDisciples } from '@/lib/repositories/disciples'
+import { getProfilesByCongregation } from '@/lib/repositories/profiles'
+import { getDisciplesLite } from '@/lib/repositories/disciples'
 import { redirect } from 'next/navigation'
 import { AcolhimentoClient } from './client'
 
@@ -17,8 +17,8 @@ export default async function AcolhimentoPage({
 
   const [cases, discipuladores, disciples] = await Promise.all([
     getCases(profile.congregation_id, { search }),
-    getProfilesByCongrегation(profile.congregation_id),
-    getDisciples(profile.congregation_id),
+    getProfilesByCongregation(profile.congregation_id),
+    getDisciplesLite(profile.congregation_id),
   ])
 
   const discipuladoresAtivos = discipuladores.filter(

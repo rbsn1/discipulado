@@ -8,7 +8,7 @@ export default async function RelatoriosPage() {
   if (!profile?.congregation_id) redirect('/painel')
 
   const [stats, cases, monthly] = await Promise.all([
-    getReportStats(profile.congregation_id),
+    getReportStats(),
     getReportCases(profile.congregation_id),
     getMonthlyStats(profile.congregation_id),
   ])

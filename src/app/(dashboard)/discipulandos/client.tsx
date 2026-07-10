@@ -10,10 +10,10 @@ import { Dialog } from '@/components/ui/dialog'
 import { DiscipleForm } from '@/components/features/disciples/disciple-form'
 import { CASE_STATUS_LABEL, CASE_STATUS_COLOR, formatDate } from '@/lib/utils'
 import { Plus, Search } from 'lucide-react'
-import type { DiscipleWithCase, CreateDiscipleInput, WorshipService } from '@/types'
+import type { DiscipleListItem, CreateDiscipleInput, WorshipService } from '@/types'
 
 interface Props {
-  disciples: DiscipleWithCase[]
+  disciples: DiscipleListItem[]
   congregationId: string
   currentUserId: string
   search?: string

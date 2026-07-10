@@ -1,14 +1,17 @@
 import { createClient } from '@/lib/supabase/server'
 import type { Class, ClassEnrollment, Lesson, AttendanceItem, AttendanceItemInput } from '@/types'
 
-export async function getClasses(congregationId: string) {
+export async function getClasses(congregationId: string, options?: { activeOnly?: boolean }) {
   const supabase = await createClient()
-  const { data, error } = await supabase
+  let query = supabase
     .from('classes')
     .select('*')
     .eq('congregation_id', congregationId)
     .order('name')
 
+  if (options?.activeOnly) query = query.eq('is_active', true)
+
+  const { data, error } = await query
   if (error) throw error
   return data as Class[]
 }

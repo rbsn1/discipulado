@@ -1,8 +1,9 @@
+import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Profile, ProfileWithCongregation, UserRole } from '@/types'
 
-export async function getCurrentProfile(): Promise<Profile | null> {
+export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
@@ -15,9 +16,9 @@ export async function getCurrentProfile(): Promise<Profile | null> {
 
   if (error) return null
   return data as Profile
-}
+})
 
-export async function getProfilesByCongrегation(congregationId: string): Promise<ProfileWithCongregation[]> {
+export async function getProfilesByCongregation(congregationId: string): Promise<ProfileWithCongregation[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('profiles')

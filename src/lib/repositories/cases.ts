@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import type {
-  DiscipleshipCase,
-  DiscipleshipCaseWithRelations,
+  CaseListItem,
   CaseStatus,
   StartCaseInput,
   CaseEvent,
@@ -9,18 +8,19 @@ import type {
   ContactOutcome,
 } from '@/types'
 
+// Só os campos renderizados nas listagens de acolhimento/confraternização (ver CaseListItem)
 export async function getCases(congregationId: string, filters?: {
   status?: CaseStatus[]
   assigned_to?: string
   search?: string
-}) {
+}): Promise<CaseListItem[]> {
   const supabase = await createClient()
   let query = supabase
     .from('discipleship_cases')
     .select(`
-      *,
-      disciples ( id, full_name, phone, origin ),
-      profiles!assigned_to ( id, name )
+      id, disciple_id, status, assigned_to, welcomed_on, last_contact_at, attendance_rate, created_at,
+      disciples ( full_name, phone ),
+      profiles!assigned_to ( name )
     `)
     .eq('congregation_id', congregationId)
     .order('created_at', { ascending: false })
@@ -36,7 +36,7 @@ export async function getCases(congregationId: string, filters?: {
   const { data, error } = await query
   if (error) throw error
 
-  let result = data as DiscipleshipCaseWithRelations[]
+  let result = data as unknown as CaseListItem[]
   if (filters?.search) {
     const s = filters.search.toLowerCase()
     result = result.filter(c =>
@@ -45,26 +45,6 @@ export async function getCases(congregationId: string, filters?: {
     )
   }
   return result
-}
-
-export async function getCaseById(id: string): Promise<DiscipleshipCaseWithRelations> {
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('discipleship_cases')
-    .select(`
-      *,
-      disciples ( * ),
-      profiles!assigned_to ( id, name ),
-      case_module_progress (
-        *,
-        module_templates ( id, title, sort_order )
-      )
-    `)
-    .eq('id', id)
-    .single()
-
-  if (error) throw error
-  return data as DiscipleshipCaseWithRelations
 }
 
 export async function startCase(
@@ -251,49 +231,22 @@ export async function updateModuleProgress(
   })
 }
 
-export async function getDashboardStats(congregationId: string) {
-  const supabase = await createClient()
+export interface DashboardStats {
+  acolhimento: number
+  pendente_matricula: number
+  em_discipulado: number
+  pausado: number
+  concluido: number
+  sem_responsavel: number
+  sem_matricula: number
+  baixa_frequencia: number
+  sem_contato_recente: number
+}
 
-  const { data: cases, error } = await supabase
-    .from('discipleship_cases')
-    .select('id, status, stage, assigned_to, attendance_rate, last_contact_at, welcomed_on')
-    .eq('congregation_id', congregationId)
+export async function getDashboardStats(): Promise<DashboardStats> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('get_dashboard_stats').single()
 
   if (error) throw error
-
-  const thirtyDaysAgo = new Date()
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
-  const stats = {
-    acolhimento: 0,
-    pendente_matricula: 0,
-    em_discipulado: 0,
-    pausado: 0,
-    concluido: 0,
-    sem_responsavel: 0,
-    sem_matricula: 0,
-    baixa_frequencia: 0,
-    sem_contato_recente: 0,
-  }
-
-  for (const c of cases) {
-    if (c.stage === 'ACOLHIMENTO') stats.acolhimento++
-    if (c.status === 'PENDENTE_MATRICULA') stats.pendente_matricula++
-    if (c.status === 'EM_DISCIPULADO') stats.em_discipulado++
-    if (c.status === 'PAUSADO') stats.pausado++
-    if (c.status === 'CONCLUIDO') stats.concluido++
-
-    const isActive = ['PENDENTE_MATRICULA', 'EM_DISCIPULADO', 'PAUSADO'].includes(c.status)
-    if (isActive) {
-      if (!c.assigned_to) stats.sem_responsavel++
-      if (c.status === 'PENDENTE_MATRICULA') stats.sem_matricula++
-      if (c.status === 'EM_DISCIPULADO' && c.attendance_rate < 75) stats.baixa_frequencia++
-      if (
-        !c.last_contact_at ||
-        new Date(c.last_contact_at) < thirtyDaysAgo
-      ) stats.sem_contato_recente++
-    }
-  }
-
-  return stats
+  return data as DashboardStats
 }

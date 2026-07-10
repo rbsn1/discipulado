@@ -1,7 +1,7 @@
 import { getCurrentProfile } from '@/lib/repositories/profiles'
 import { getDiscipleById } from '@/lib/repositories/disciples'
 import { getCaseTimeline } from '@/lib/repositories/cases'
-import { getProfilesByCongrегation } from '@/lib/repositories/profiles'
+import { getProfilesByCongregation } from '@/lib/repositories/profiles'
 import { getClasses } from '@/lib/repositories/classes'
 import { getCaseConfraternizacaoInfo } from '@/lib/repositories/events'
 import { getWorshipServices } from '@/lib/repositories/worship-services'
@@ -28,10 +28,10 @@ export default async function DiscipleDetailPage({
   const activeCase = disciple.discipleship_cases?.[0] ?? null
   const [timeline, discipuladores, classes, confraternizacaoInfo, worshipServices] = await Promise.all([
     activeCase ? getCaseTimeline(activeCase.id) : Promise.resolve([]),
-    getProfilesByCongrегation(profile.congregation_id),
-    getClasses(profile.congregation_id),
+    getProfilesByCongregation(profile.congregation_id),
+    getClasses(profile.congregation_id, { activeOnly: true }),
     activeCase ? getCaseConfraternizacaoInfo(activeCase.id) : Promise.resolve({ hasAttended: false, preferredShift: null }),
-    getWorshipServices(profile.congregation_id),
+    getWorshipServices(profile.congregation_id, { activeOnly: true }),
   ])
 
   return (
@@ -41,11 +41,11 @@ export default async function DiscipleDetailPage({
         activeCase={activeCase as any}
         timeline={timeline}
         discipuladores={discipuladores}
-        classes={classes.filter(c => c.is_active)}
+        classes={classes}
         currentProfile={profile}
         hasAttendedConfraternizacao={confraternizacaoInfo.hasAttended}
         preferredShift={confraternizacaoInfo.preferredShift}
-        worshipServices={worshipServices.filter(s => s.is_active)}
+        worshipServices={worshipServices}
       />
     </div>
   )

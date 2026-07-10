@@ -13,10 +13,11 @@ export default async function TurmaDetailPage({
   if (!profile?.congregation_id) redirect('/painel')
 
   const { id } = await params
-  const turma = await getClassById(id).catch(() => null)
+  const [turma, modules] = await Promise.all([
+    getClassById(id).catch(() => null),
+    getModuleTemplates(profile.congregation_id, { activeOnly: true }),
+  ])
   if (!turma) notFound()
-
-  const modules = await getModuleTemplates(profile.congregation_id)
 
   return (
     <div className="p-6 max-w-5xl mx-auto">

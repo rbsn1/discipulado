@@ -38,41 +38,27 @@ export interface ReportCase {
   updated_at: string
 }
 
-export async function getReportStats(congregationId: string): Promise<ReportStats> {
+export async function getReportStats(): Promise<ReportStats> {
   const supabase = await createClient()
+  const { data, error } = await supabase.rpc('get_report_stats').single()
+  if (error) throw error
 
-  const { data: cases } = await supabase
-    .from('discipleship_cases')
-    .select(`
-      id, status, stage,
-      post_discipleship ( integration_status, baptism_status, department_name, department_contacted_at )
-    `)
-    .eq('congregation_id', congregationId)
+  const stats = data as {
+    total_cases: number
+    acolhimento: number
+    em_discipulado: number
+    pausado: number
+    concluido: number
+    sem_departamento: number
+    aguardando_confirmacao: number
+    confirmados: number
+    batizados: number
+  }
 
-  const rows = cases ?? []
-  const concluded = rows.filter(c => c.status === 'CONCLUIDO')
-
-  const semDep   = concluded.filter(c => !c.post_discipleship || !(c.post_discipleship as any).department_name)
-  const aguard   = concluded.filter(c => {
-    const pd = c.post_discipleship as any
-    return pd?.department_name && !pd?.department_contacted_at
-  })
-  const confirm  = concluded.filter(c => !!(c.post_discipleship as any)?.department_contacted_at)
-  const batizado = concluded.filter(c => (c.post_discipleship as any)?.baptism_status === 'BATIZADO')
-
-  const total = rows.length
   return {
-    total_cases:          total,
-    acolhimento:          rows.filter(c => c.stage === 'ACOLHIMENTO' && c.status !== 'CONCLUIDO').length,
-    em_discipulado:       rows.filter(c => c.status === 'EM_DISCIPULADO').length,
-    pausado:              rows.filter(c => c.status === 'PAUSADO').length,
-    concluido:            concluded.length,
-    sem_departamento:     semDep.length,
-    aguardando_confirmacao: aguard.length,
-    confirmados:          confirm.length,
-    batizados:            batizado.length,
-    taxa_conclusao:       total > 0 ? Math.round((concluded.length / total) * 100) : 0,
-    taxa_integracao:      concluded.length > 0 ? Math.round((confirm.length / concluded.length) * 100) : 0,
+    ...stats,
+    taxa_conclusao:  stats.total_cases > 0 ? Math.round((stats.concluido / stats.total_cases) * 100) : 0,
+    taxa_integracao: stats.concluido > 0 ? Math.round((stats.confirmados / stats.concluido) * 100) : 0,
   }
 }
 

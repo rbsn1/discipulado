@@ -1,14 +1,20 @@
 import { createClient } from '@/lib/supabase/server'
 import type { ModuleTemplate } from '@/types'
 
-export async function getModuleTemplates(congregationId: string): Promise<ModuleTemplate[]> {
+export async function getModuleTemplates(
+  congregationId: string,
+  options?: { activeOnly?: boolean }
+): Promise<ModuleTemplate[]> {
   const supabase = await createClient()
-  const { data, error } = await supabase
+  let query = supabase
     .from('module_templates')
     .select('*')
     .eq('congregation_id', congregationId)
     .order('sort_order')
 
+  if (options?.activeOnly) query = query.eq('is_active', true)
+
+  const { data, error } = await query
   if (error) throw error
   return data as ModuleTemplate[]
 }

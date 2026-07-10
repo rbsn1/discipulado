@@ -1641,3 +1641,196 @@ create policy "platform_settings_select" on platform_settings for select
 
 create policy "platform_settings_update" on platform_settings for update
   using (is_platform_admin());
+
+-- =============================================================
+-- 010_performance_indexes.sql
+-- Índices faltantes em colunas de FK/RLS, busca por nome/telefone,
+-- e remoção de índices redundantes (duplicam constraints UNIQUE
+-- ou o início de uma PK composta já existente).
+-- =============================================================
+
+-- ---------------------------------------------------------------
+-- Índices faltantes: colunas usadas em RLS ou em queries reais
+-- da aplicação, sem nenhuma cobertura hoje
+-- ---------------------------------------------------------------
+
+-- Tabelas sem NENHUM índice até agora, atingidas em toda RLS check
+create index idx_module_templates_congregation on module_templates(congregation_id);
+create index idx_worship_services_congregation on worship_services(congregation_id);
+
+-- FK sem índice + query confirmada (getCaseConfraternizacaoInfo) + ON DELETE CASCADE
+create index idx_event_confirmations_case on event_confirmations(case_id);
+
+-- FK sem índice, usada em RLS (profiles_select/profiles_update) e em getProfilesByCongregation
+create index idx_profiles_congregation on profiles(congregation_id);
+
+-- FK sem índice, ON DELETE RESTRICT (custo ao apagar um culto)
+create index idx_disciples_worship_service on disciples(worship_service_id);
+
+-- FKs sem índice, custo ao apagar module_templates (ON DELETE RESTRICT)
+create index idx_case_module_progress_template on case_module_progress(module_template_id);
+create index idx_lessons_module_template on lessons(module_template_id);
+
+-- ---------------------------------------------------------------
+-- Busca por nome/telefone: getDisciples() usa ILIKE '%termo%',
+-- que nenhum índice atual serve (idx_disciples_name é GIN tsvector,
+-- só serve consultas @@; idx_disciples_phone é btree comum,
+-- não serve wildcard à esquerda)
+-- ---------------------------------------------------------------
+
+create extension if not exists pg_trgm;
+
+create index idx_disciples_name_trgm on disciples using gin (full_name gin_trgm_ops);
+create index idx_disciples_phone_trgm on disciples using gin (phone gin_trgm_ops);
+
+-- ---------------------------------------------------------------
+-- Índices redundantes: cada um duplica o início de uma constraint
+-- UNIQUE (ou PK composta) que já cobre a mesma coluna — custo de
+-- escrita sem ganho de leitura. attendance_items é a tabela com
+-- mais escrita do sistema, então isso importa especialmente ali.
+-- ---------------------------------------------------------------
+
+-- Redundante: disciples_phone_congregation_unique(congregation_id, phone) já cobre
+drop index if exists idx_disciples_phone;
+
+-- Redundante: PK composta (case_id, module_template_id) já cobre case_id sozinho
+drop index if exists idx_module_progress_case;
+
+-- Redundante: attendance_lesson_disciple_unique(lesson_id, disciple_id) já cobre
+drop index if exists idx_attendance_lesson;
+
+-- Redundante: idx_enrollments_one_active_per_disciple tem a mesma definição
+-- (disciple_id) where active = true, só que UNIQUE
+drop index if exists idx_enrollments_active;
+
+-- =============================================================
+-- 011_dashboard_stats_rpc.sql
+-- Agrega as estatísticas do painel dentro do Postgres em vez de
+-- baixar todos os cases da congregação pra contar em JS.
+-- Espelha exatamente a lógica hoje em getDashboardStats()
+-- (src/lib/repositories/cases.ts).
+-- =============================================================
+
+create or replace function get_dashboard_stats()
+returns table (
+  acolhimento         int,
+  pendente_matricula  int,
+  em_discipulado      int,
+  pausado             int,
+  concluido           int,
+  sem_responsavel     int,
+  sem_matricula       int,
+  baixa_frequencia    int,
+  sem_contato_recente int
+)
+language sql stable security definer
+set search_path = public
+as $$
+  select
+    count(*) filter (where stage = 'ACOLHIMENTO')::int,
+    count(*) filter (where status = 'PENDENTE_MATRICULA')::int,
+    count(*) filter (where status = 'EM_DISCIPULADO')::int,
+    count(*) filter (where status = 'PAUSADO')::int,
+    count(*) filter (where status = 'CONCLUIDO')::int,
+    count(*) filter (
+      where status in ('PENDENTE_MATRICULA', 'EM_DISCIPULADO', 'PAUSADO')
+      and assigned_to is null
+    )::int,
+    count(*) filter (where status = 'PENDENTE_MATRICULA')::int,
+    count(*) filter (where status = 'EM_DISCIPULADO' and attendance_rate < 75)::int,
+    count(*) filter (
+      where status in ('PENDENTE_MATRICULA', 'EM_DISCIPULADO', 'PAUSADO')
+      and (last_contact_at is null or last_contact_at < now() - interval '30 days')
+    )::int
+  from discipleship_cases
+  where congregation_id = auth_congregation_id();
+$$;
+-- =============================================================
+-- 012_report_stats_rpc.sql
+-- Agrega as estatísticas de /relatorios dentro do Postgres em vez
+-- de baixar todos os cases da congregação (todo status) pra contar
+-- em JS. Espelha exatamente a lógica hoje em getReportStats()
+-- (src/lib/repositories/reports.ts).
+-- =============================================================
+
+create or replace function get_report_stats()
+returns table (
+  total_cases            int,
+  acolhimento            int,
+  em_discipulado         int,
+  pausado                int,
+  concluido              int,
+  sem_departamento       int,
+  aguardando_confirmacao int,
+  confirmados            int,
+  batizados              int
+)
+language sql stable security definer
+set search_path = public
+as $$
+  select
+    count(*)::int,
+    count(*) filter (
+      where dc.stage = 'ACOLHIMENTO' and dc.status <> 'CONCLUIDO'
+    )::int,
+    count(*) filter (where dc.status = 'EM_DISCIPULADO')::int,
+    count(*) filter (where dc.status = 'PAUSADO')::int,
+    count(*) filter (where dc.status = 'CONCLUIDO')::int,
+    count(*) filter (
+      where dc.status = 'CONCLUIDO'
+      and (pd.department_name is null or pd.department_name = '')
+    )::int,
+    count(*) filter (
+      where dc.status = 'CONCLUIDO'
+      and pd.department_name is not null and pd.department_name <> ''
+      and pd.department_contacted_at is null
+    )::int,
+    count(*) filter (
+      where dc.status = 'CONCLUIDO' and pd.department_contacted_at is not null
+    )::int,
+    count(*) filter (
+      where dc.status = 'CONCLUIDO' and pd.baptism_status = 'BATIZADO'
+    )::int
+  from discipleship_cases dc
+  left join post_discipleship pd on pd.case_id = dc.id
+  where dc.congregation_id = auth_congregation_id();
+$$;
+-- =============================================================
+-- 013_record_attendance_batch.sql
+-- Troca o loop linha-a-linha de record_attendance() por um único
+-- INSERT ... SELECT em lote, com o mesmo upsert/conflito de antes.
+--
+-- Não altera os triggers de attendance_items (trg_attendance_recalculate,
+-- trg_auto_module_progress): cada linha ainda dispara ambos, mas isso é
+-- trabalho necessário — cada linha é um discipulando diferente, com seu
+-- próprio case, então não há recomputação redundante ali. O ganho aqui é
+-- só reduzir N statements sequenciais pra 1 statement em lote.
+-- =============================================================
+
+create or replace function record_attendance(
+  p_lesson_id  uuid,
+  p_items      jsonb,  -- array de {disciple_id, status, note}
+  p_marked_by  uuid
+)
+returns void
+language plpgsql security definer
+set search_path = public
+as $$
+begin
+  insert into attendance_items (lesson_id, disciple_id, status, note, marked_by)
+  select
+    p_lesson_id,
+    (item->>'disciple_id')::uuid,
+    (item->>'status')::attendance_status,
+    item->>'note',
+    p_marked_by
+  from jsonb_array_elements(p_items) as item
+  on conflict (lesson_id, disciple_id)
+  do update set
+    status     = excluded.status,
+    note       = excluded.note,
+    marked_by  = excluded.marked_by,
+    marked_at  = now(),
+    updated_at = now();
+end;
+$$;

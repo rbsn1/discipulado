@@ -125,8 +125,7 @@ export default async function PainelPage() {
     redirect('/login')
   }
 
-  const congregationId = profile.congregation_id
-  const [stats] = await Promise.all([getDashboardStats(congregationId)])
+  const stats = await getDashboardStats()
 
   const statCards: StatCardProps[] = [
     {
