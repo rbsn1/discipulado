@@ -31,7 +31,7 @@ async function loginAction(_: string | null, formData: FormData) {
 function Seal({ size = 36 }: { size?: number }) {
   return (
     <div
-      className="flex shrink-0 items-center justify-center rounded-full bg-[#8B6229] ring-1 ring-[#C9A05C]/40"
+      className="flex shrink-0 items-center justify-center rounded-full bg-[#8A5F16] ring-1 ring-[#D9A441]/40"
       style={{ height: size, width: size }}
     >
       <svg
@@ -72,20 +72,20 @@ export default function LoginPage() {
       className={`${fraunces.variable} ${inter.variable} flex min-h-screen bg-[#F7F2E7]`}
       style={{ fontFamily: 'var(--font-body)' }}
     >
-      {/* ── Painel esquerdo — a "capa do livro de registro" ────────────── */}
-      <div className="relative hidden lg:flex lg:w-[48%] flex-col overflow-hidden bg-[#16241D]">
+      {/* ── Painel esquerdo — céu noturno, o caminho antes do amanhecer ── */}
+      <div className="relative hidden lg:flex lg:w-[48%] flex-col overflow-hidden bg-[#171B2E]">
 
-        {/* Textura de tecido — trama fina, sem brilhos nem blur */}
+        {/* Textura fina, sem brilhos nem blur */}
         <div
           className="absolute inset-0"
           style={{
             backgroundImage:
-              'repeating-linear-gradient(45deg, rgba(201,160,92,0.035) 0px, rgba(201,160,92,0.035) 1px, transparent 1px, transparent 6px)',
+              'repeating-linear-gradient(45deg, rgba(217,164,65,0.035) 0px, rgba(217,164,65,0.035) 1px, transparent 1px, transparent 6px)',
           }}
         />
 
-        {/* Lombada dourada à direita */}
-        <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-[#C9A05C]/50 to-transparent" />
+        {/* Linha de horizonte, à direita */}
+        <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-[#D9A441]/50 to-transparent" />
 
         <div className="relative flex flex-1 flex-col justify-between p-12 xl:p-16">
 
@@ -109,26 +109,26 @@ export default function LoginPage() {
               "Ide, portanto, e fazei discípulos de todas as nações,
               batizando-os em nome do Pai, e do Filho, e do Espírito Santo."
             </p>
-            <cite className="mt-4 block text-sm not-italic tracking-wide text-[#C9A05C]">
+            <cite className="mt-4 block text-sm not-italic tracking-wide text-[#D9A441]">
               — Mateus 28:19
             </cite>
 
             {/* Régua */}
-            <div className="my-8 h-px w-16 bg-[#C9A05C]/60" />
+            <div className="my-8 h-px w-16 bg-[#D9A441]/60" />
 
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#C9A05C]/80">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#D9A441]/80">
               O caminho do discipulado
             </p>
 
             {/* Etapas reais do ciclo (ACOLHIMENTO → DISCIPULADO → PÓS-DISCIPULADO) */}
             <ol className="relative mt-6 flex flex-col gap-6">
-              <div className="absolute left-[6px] top-2 bottom-2 w-px bg-[#C9A05C]/25" />
+              <div className="absolute left-[6px] top-2 bottom-2 w-px bg-[#D9A441]/25" />
               {stages.map((s) => (
                 <li key={s.name} className="relative flex gap-4 pl-8">
-                  <span className="absolute left-0 top-1 h-3.5 w-3.5 rounded-full border-2 border-[#C9A05C] bg-[#16241D]" />
+                  <span className="absolute left-0 top-1 h-3.5 w-3.5 rounded-full border-2 border-[#D9A441] bg-[#171B2E]" />
                   <div>
                     <p className="text-sm font-semibold tracking-wide text-[#F7F2E7]">{s.name}</p>
-                    <p className="mt-0.5 text-xs leading-relaxed text-[#8FA08D]">{s.desc}</p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-[#8A93B0]">{s.desc}</p>
                   </div>
                 </li>
               ))}
@@ -136,7 +136,7 @@ export default function LoginPage() {
           </div>
 
           {/* Rodapé */}
-          <p className="max-w-sm text-sm italic leading-relaxed text-[#8FA08D]" style={{ fontFamily: 'var(--font-display)' }}>
+          <p className="max-w-sm text-sm italic leading-relaxed text-[#8A93B0]" style={{ fontFamily: 'var(--font-display)' }}>
             Do primeiro contato ao envio — cada pessoa, acompanhada até o fim.
           </p>
         </div>
@@ -191,7 +191,7 @@ export default function LoginPage() {
                 placeholder="voce@congregacao.com"
                 autoComplete="email"
                 required
-                className="focus:border-[#8B6229] focus:ring-[#8B6229]/20"
+                className="focus:border-[#8A5F16] focus:ring-[#8A5F16]/20"
               />
               <Input
                 name="password"
@@ -200,7 +200,7 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 autoComplete="current-password"
                 required
-                className="focus:border-[#8B6229] focus:ring-[#8B6229]/20"
+                className="focus:border-[#8A5F16] focus:ring-[#8A5F16]/20"
               />
             </div>
 
@@ -208,7 +208,7 @@ export default function LoginPage() {
               type="submit"
               loading={isPending}
               size="lg"
-              className="mt-1 w-full bg-[#8B6229] hover:bg-[#6E4E1F] disabled:bg-[#8B6229]/40 focus-visible:ring-[#8B6229] shadow-md shadow-[#8B6229]/10 transition-colors"
+              className="mt-1 w-full bg-[#8A5F16] hover:bg-[#6E4B10] disabled:bg-[#8A5F16]/40 focus-visible:ring-[#8A5F16] shadow-md shadow-[#8A5F16]/10 transition-colors"
             >
               {isPending ? 'Entrando…' : 'Entrar'}
             </Button>
