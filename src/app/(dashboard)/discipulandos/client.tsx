@@ -10,16 +10,17 @@ import { Dialog } from '@/components/ui/dialog'
 import { DiscipleForm } from '@/components/features/disciples/disciple-form'
 import { CASE_STATUS_LABEL, CASE_STATUS_COLOR, formatDate } from '@/lib/utils'
 import { Plus, Search } from 'lucide-react'
-import type { DiscipleWithCase, CreateDiscipleInput } from '@/types'
+import type { DiscipleWithCase, CreateDiscipleInput, WorshipService } from '@/types'
 
 interface Props {
   disciples: DiscipleWithCase[]
   congregationId: string
   currentUserId: string
   search?: string
+  worshipServices: WorshipService[]
 }
 
-export function DisciplesClientPage({ disciples, congregationId, currentUserId, search }: Props) {
+export function DisciplesClientPage({ disciples, congregationId, currentUserId, search, worshipServices }: Props) {
   const router = useRouter()
   const [showForm, setShowForm] = useState(false)
   const [searchValue, setSearchValue] = useState(search ?? '')
@@ -78,6 +79,7 @@ export function DisciplesClientPage({ disciples, congregationId, currentUserId, 
               <th className="px-4 py-3 text-left font-medium text-gray-600">Nome</th>
               <th className="px-4 py-3 text-left font-medium text-gray-600">Telefone</th>
               <th className="px-4 py-3 text-left font-medium text-gray-600">Origem</th>
+              <th className="px-4 py-3 text-left font-medium text-gray-600">Culto</th>
               <th className="px-4 py-3 text-left font-medium text-gray-600">Status</th>
               <th className="px-4 py-3 text-left font-medium text-gray-600">Cadastro</th>
             </tr>
@@ -85,7 +87,7 @@ export function DisciplesClientPage({ disciples, congregationId, currentUserId, 
           <tbody className="divide-y divide-gray-100">
             {disciples.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
                   Nenhum discipulando encontrado
                 </td>
               </tr>
@@ -101,6 +103,7 @@ export function DisciplesClientPage({ disciples, congregationId, currentUserId, 
                   </td>
                   <td className="px-4 py-3 text-gray-600">{d.phone ?? '—'}</td>
                   <td className="px-4 py-3 text-gray-600">{d.origin ?? '—'}</td>
+                  <td className="px-4 py-3 text-gray-600">{d.worship_services?.name ?? '—'}</td>
                   <td className="px-4 py-3">
                     {activeCase ? (
                       <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${CASE_STATUS_COLOR[activeCase.status]}`}>
@@ -120,6 +123,7 @@ export function DisciplesClientPage({ disciples, congregationId, currentUserId, 
 
       <Dialog open={showForm} onClose={() => setShowForm(false)} title="Novo Discipulando">
         <DiscipleForm
+          worshipServices={worshipServices}
           onSubmit={handleCreate}
           onCancel={() => setShowForm(false)}
         />

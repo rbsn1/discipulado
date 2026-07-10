@@ -1,7 +1,7 @@
 import { getCurrentProfile } from '@/lib/repositories/profiles'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Users, BookOpen, Building2 } from 'lucide-react'
+import { Users, BookOpen, Building2, Church } from 'lucide-react'
 
 export default async function AdminPage() {
   const profile = await getCurrentProfile()
@@ -28,6 +28,13 @@ export default async function AdminPage() {
       icon: BookOpen,
       title: 'Módulos',
       description: 'Configurar catálogo de módulos de discipulado',
+      adminOnly: false,
+    },
+    {
+      href: '/admin/cultos',
+      icon: Church,
+      title: 'Cultos',
+      description: 'Configurar catálogo de cultos usado na origem do cadastro',
       adminOnly: false,
     },
   ]

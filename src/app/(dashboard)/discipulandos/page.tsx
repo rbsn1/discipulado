@@ -1,5 +1,6 @@
 import { getCurrentProfile } from '@/lib/repositories/profiles'
 import { getDisciples } from '@/lib/repositories/disciples'
+import { getWorshipServices } from '@/lib/repositories/worship-services'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
@@ -16,7 +17,10 @@ export default async function DiscipulandosPage({
   if (!profile?.congregation_id) redirect('/painel')
 
   const { search } = await searchParams
-  const disciples = await getDisciples(profile.congregation_id, search)
+  const [disciples, worshipServices] = await Promise.all([
+    getDisciples(profile.congregation_id, search),
+    getWorshipServices(profile.congregation_id),
+  ])
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto">
@@ -25,6 +29,7 @@ export default async function DiscipulandosPage({
         congregationId={profile.congregation_id}
         currentUserId={profile.id}
         search={search}
+        worshipServices={worshipServices.filter(s => s.is_active)}
       />
     </div>
   )

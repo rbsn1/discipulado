@@ -3,17 +3,19 @@
 import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { Select } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Alert } from '@/components/ui/alert'
-import type { Disciple, CreateDiscipleInput } from '@/types'
+import type { Disciple, CreateDiscipleInput, WorshipService } from '@/types'
 
 interface DiscipleFormProps {
   defaultValues?: Partial<Disciple>
+  worshipServices: WorshipService[]
   onSubmit: (data: CreateDiscipleInput) => Promise<{ error?: string } | void>
   onCancel: () => void
 }
 
-export function DiscipleForm({ defaultValues, onSubmit, onCancel }: DiscipleFormProps) {
+export function DiscipleForm({ defaultValues, worshipServices, onSubmit, onCancel }: DiscipleFormProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -30,6 +32,7 @@ export function DiscipleForm({ defaultValues, onSubmit, onCancel }: DiscipleForm
       address: (fd.get('address') as string) || undefined,
       conversion_date: (fd.get('conversion_date') as string) || undefined,
       origin: (fd.get('origin') as string) || undefined,
+      worship_service_id: (fd.get('worship_service_id') as string) || undefined,
       notes: (fd.get('notes') as string) || undefined,
     }
     const result = await onSubmit(data)
@@ -83,12 +86,21 @@ export function DiscipleForm({ defaultValues, onSubmit, onCancel }: DiscipleForm
         />
       </div>
 
-      <Input
-        name="origin"
-        label="Origem"
-        defaultValue={defaultValues?.origin ?? ''}
-        placeholder="Como chegou à igreja"
-      />
+      <div className="grid grid-cols-2 gap-3">
+        <Input
+          name="origin"
+          label="Origem"
+          defaultValue={defaultValues?.origin ?? ''}
+          placeholder="Como chegou à igreja"
+        />
+        <Select
+          name="worship_service_id"
+          label="Culto de origem"
+          defaultValue={defaultValues?.worship_service_id ?? ''}
+          placeholder="Nenhum"
+          options={worshipServices.map(s => ({ value: s.id, label: s.name }))}
+        />
+      </div>
 
       <Input
         name="address"

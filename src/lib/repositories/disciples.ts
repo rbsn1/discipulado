@@ -7,6 +7,7 @@ export async function getDisciples(congregationId: string, search?: string) {
     .from('disciples')
     .select(`
       *,
+      worship_services ( id, name ),
       discipleship_cases (
         id, status, stage, assigned_to, attendance_rate,
         profiles!assigned_to ( id, name )
@@ -30,6 +31,7 @@ export async function getDiscipleById(id: string) {
     .from('disciples')
     .select(`
       *,
+      worship_services ( id, name ),
       class_enrollments ( id, active, class_id, classes ( id, name, shift ) ),
       discipleship_cases (
         *,
@@ -64,6 +66,7 @@ export async function createDisciple(
       address: input.address || null,
       conversion_date: input.conversion_date || null,
       origin: input.origin || null,
+      worship_service_id: input.worship_service_id || null,
       notes: input.notes || null,
       created_by: createdBy,
     })

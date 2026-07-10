@@ -93,6 +93,7 @@ export interface Disciple {
   address: string | null
   conversion_date: string | null
   origin: string | null
+  worship_service_id: string | null
   notes: string | null
   created_by: string | null
   created_at: string
@@ -101,6 +102,7 @@ export interface Disciple {
 
 export interface DiscipleWithCase extends Disciple {
   discipleship_cases: DiscipleshipCase[]
+  worship_services: Pick<WorshipService, 'id' | 'name'> | null
 }
 
 export interface DiscipleshipCase {
@@ -135,6 +137,15 @@ export interface ModuleTemplate {
   title: string
   description: string | null
   sort_order: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface WorshipService {
+  id: string
+  congregation_id: string
+  name: string
   is_active: boolean
   created_at: string
   updated_at: string
@@ -269,6 +280,7 @@ export interface CreateDiscipleInput {
   address?: string
   conversion_date?: string
   origin?: string
+  worship_service_id?: string
   notes?: string
 }
 

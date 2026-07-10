@@ -31,6 +31,7 @@ import {
   Mail,
   Calendar,
   MapPin,
+  Church,
   Edit2,
   PlayCircle,
   PauseCircle,
@@ -72,10 +73,11 @@ import type {
   Class,
   CreateDiscipleInput,
   ContactOutcome,
+  WorshipService,
 } from '@/types'
 
 interface Props {
-  disciple: Disciple & { congregation_id: string; class_enrollments?: { id: string; active: boolean; class_id: string; classes: { id: string; name: string; shift: string } | null }[] }
+  disciple: Disciple & { congregation_id: string; worship_services?: { id: string; name: string } | null; class_enrollments?: { id: string; active: boolean; class_id: string; classes: { id: string; name: string; shift: string } | null }[] }
   activeCase: DiscipleshipCaseWithRelations | null
   timeline: CaseEvent[]
   discipuladores: Profile[]
@@ -83,6 +85,7 @@ interface Props {
   currentProfile: Profile
   hasAttendedConfraternizacao: boolean
   preferredShift: string | null
+  worshipServices: WorshipService[]
 }
 
 const CONTACT_OUTCOMES: { value: ContactOutcome; label: string }[] = [
@@ -107,6 +110,7 @@ export function DiscipleDetailClient({
   currentProfile,
   hasAttendedConfraternizacao,
   preferredShift,
+  worshipServices,
 }: Props) {
   const router = useRouter()
   const [editDisciple, setEditDisciple] = useState(false)
@@ -342,6 +346,10 @@ export function DiscipleDetailClient({
                   <dd className="font-medium">{disciple.origin ?? '—'}</dd>
                 </div>
                 <div>
+                  <dt className="text-gray-500 flex items-center gap-1"><Church className="h-3.5 w-3.5" />Culto de origem</dt>
+                  <dd className="font-medium">{disciple.worship_services?.name ?? '—'}</dd>
+                </div>
+                <div>
                   <dt className="text-gray-500 flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />Endereço</dt>
                   <dd className="font-medium">{disciple.address ?? '—'}</dd>
                 </div>
@@ -502,6 +510,7 @@ export function DiscipleDetailClient({
       <Dialog open={editDisciple} onClose={() => setEditDisciple(false)} title="Editar Discipulando">
         <DiscipleForm
           defaultValues={disciple}
+          worshipServices={worshipServices}
           onSubmit={async (data) => { await handleUpdateDisciple(data) }}
           onCancel={() => setEditDisciple(false)}
         />
