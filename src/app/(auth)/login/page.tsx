@@ -11,7 +11,7 @@ const fraunces = Fraunces({
 
 const inter = Inter({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+  weight: ['400', '500', '600', '700', '800'],
   variable: '--font-body',
 })
 
@@ -95,10 +95,14 @@ export default async function LoginPage() {
           {/* Frase de propósito — a tese da página */}
           <div>
             <p
-              className="text-3xl xl:text-[2.5rem] italic leading-[1.35] text-white"
-              style={{ fontFamily: 'var(--font-display)', fontWeight: 400 }}
+              className="text-3xl xl:text-[2.5rem] leading-[1.2] tracking-tight text-white"
+              style={{ fontFamily: 'var(--font-body)', fontWeight: 800 }}
             >
-              Do primeiro contato ao envio, cada pessoa acompanhada até o fim.
+              Do primeiro contato ao envio, cada pessoa{' '}
+              <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">
+                acompanhada
+              </span>{' '}
+              até o fim.
             </p>
 
             {/* Régua */}
