@@ -52,13 +52,13 @@ export function DashboardShell({ profile, congregationName, theme, children }: P
           </button>
 
           <div
-            className="flex h-7 w-7 items-center justify-center rounded-lg overflow-hidden shadow ring-1 ring-white/10"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg overflow-hidden shadow ring-1 ring-white/10"
             style={{ background: `linear-gradient(135deg, ${palette.accentLight}, ${palette.accent})` }}
           >
             {theme?.logoUrl
-              ? <img src={theme.logoUrl} alt="Logo" className="h-full w-full object-cover" />
+              ? <img src={theme.logoUrl} alt="Logo" className="h-full w-full object-contain p-1" />
               : (
-                <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
