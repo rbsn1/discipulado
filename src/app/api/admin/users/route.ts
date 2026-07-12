@@ -13,9 +13,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Nome, e-mail e senha são obrigatórios' }, { status: 400 })
   }
 
-  // Admin de discipulado não pode criar admin de plataforma
-  if (profile.role !== 'ADMIN_PLATAFORMA' && body.role === 'ADMIN_PLATAFORMA') {
-    return NextResponse.json({ error: 'Sem permissão para criar admin de plataforma' }, { status: 403 })
+  // Admin de plataforma só é atribuído manualmente no banco, nunca pela aplicação
+  if (body.role === 'ADMIN_PLATAFORMA') {
+    return NextResponse.json({ error: 'Admin de plataforma não pode ser criado pela aplicação' }, { status: 403 })
   }
 
   const supabase = createAdminClient()

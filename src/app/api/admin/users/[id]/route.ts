@@ -13,6 +13,11 @@ export async function PATCH(
   const { id } = await params
   const body = await req.json()
 
+  // Admin de plataforma só é atribuído manualmente no banco, nunca pela aplicação
+  if (body.role === 'ADMIN_PLATAFORMA') {
+    return NextResponse.json({ error: 'Admin de plataforma não pode ser atribuído pela aplicação' }, { status: 403 })
+  }
+
   try {
     const updated = await updateProfile(id, body)
     return NextResponse.json(updated)
