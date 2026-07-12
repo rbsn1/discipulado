@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
   const search = req.nextUrl.searchParams.get('search') ?? undefined
-  const disciples = await getDisciples(profile.congregation_id, search)
+  const disciples = await getDisciples(profile.congregation_id, { search })
   return NextResponse.json(disciples)
 }
 

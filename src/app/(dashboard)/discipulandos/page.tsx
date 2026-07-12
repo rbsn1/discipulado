@@ -1,26 +1,35 @@
-import { getCurrentProfile } from '@/lib/repositories/profiles'
+import { getCurrentProfile, getProfilesByCongregation } from '@/lib/repositories/profiles'
 import { getDisciples } from '@/lib/repositories/disciples'
 import { getWorshipServices } from '@/lib/repositories/worship-services'
+import { getClasses } from '@/lib/repositories/classes'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import { Badge } from '@/components/ui/badge'
-import { CASE_STATUS_LABEL, CASE_STATUS_COLOR, formatDate } from '@/lib/utils'
 import { DisciplesClientPage } from './client'
-import type { DiscipleWithCase } from '@/types'
+import type { CaseStatus } from '@/types'
 
 export default async function DiscipulandosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string }>
+  searchParams: Promise<{ search?: string; status?: string; turma?: string; responsavel?: string }>
 }) {
   const profile = await getCurrentProfile()
   if (!profile?.congregation_id) redirect('/painel')
 
-  const { search } = await searchParams
-  const [disciples, worshipServices] = await Promise.all([
-    getDisciples(profile.congregation_id, search),
+  const { search, status, turma, responsavel } = await searchParams
+  const [disciples, worshipServices, classes, profiles] = await Promise.all([
+    getDisciples(profile.congregation_id, {
+      search,
+      status: status as CaseStatus | 'SEM_CASE' | undefined,
+      classId: turma,
+      assignedTo: responsavel,
+    }),
     getWorshipServices(profile.congregation_id, { activeOnly: true }),
+    getClasses(profile.congregation_id, { activeOnly: true }),
+    getProfilesByCongregation(profile.congregation_id),
   ])
+
+  const discipuladores = profiles.filter(
+    p => ['DISCIPULADOR', 'ADMIN_DISCIPULADO', 'SM_DISCIPULADO'].includes(p.role) && p.is_active
+  )
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto">
@@ -29,7 +38,12 @@ export default async function DiscipulandosPage({
         congregationId={profile.congregation_id}
         currentUserId={profile.id}
         search={search}
+        status={status}
+        turma={turma}
+        responsavel={responsavel}
         worshipServices={worshipServices}
+        classes={classes}
+        discipuladores={discipuladores}
       />
     </div>
   )

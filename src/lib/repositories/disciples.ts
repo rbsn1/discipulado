@@ -1,26 +1,61 @@
 import { createClient } from '@/lib/supabase/server'
-import type { Disciple, CreateDiscipleInput, DiscipleListItem } from '@/types'
+import type { Disciple, CreateDiscipleInput, DiscipleListItem, CaseStatus } from '@/types'
 
-// Só os campos renderizados na tabela de /discipulandos (ver DiscipleListItem)
-export async function getDisciples(congregationId: string, search?: string): Promise<DiscipleListItem[]> {
+export interface DisciplesFilters {
+  search?: string
+  status?: CaseStatus | 'SEM_CASE'
+  classId?: string
+  assignedTo?: string
+}
+
+// Só os campos renderizados/filtráveis na tabela de /discipulandos (ver DiscipleListItem).
+// Status/turma/responsável são filtrados em memória após a busca (mesmo padrão já usado
+// em getCases pra filtrar por texto em dados de tabela relacionada) — evita depender da
+// sintaxe de filtro em recurso aninhado do PostgREST, que é frágil pra "sem case".
+export async function getDisciples(
+  congregationId: string,
+  filters?: DisciplesFilters
+): Promise<DiscipleListItem[]> {
   const supabase = await createClient()
   let query = supabase
     .from('disciples')
     .select(`
       id, full_name, phone, origin, created_at,
       worship_services ( name ),
-      discipleship_cases ( status )
+      discipleship_cases ( status, assigned_to, profiles!assigned_to ( name ) ),
+      class_enrollments ( active, class_id, classes ( name ) )
     `)
     .eq('congregation_id', congregationId)
     .order('full_name')
 
-  if (search) {
-    query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%`)
+  if (filters?.search) {
+    query = query.or(`full_name.ilike.%${filters.search}%,phone.ilike.%${filters.search}%`)
   }
 
   const { data, error } = await query
   if (error) throw error
-  return data as unknown as DiscipleListItem[]
+  let result = data as unknown as DiscipleListItem[]
+
+  if (filters?.status) {
+    result = result.filter(d => {
+      const activeCase = d.discipleship_cases?.[0]
+      return filters.status === 'SEM_CASE'
+        ? !activeCase
+        : activeCase?.status === filters.status
+    })
+  }
+
+  if (filters?.classId) {
+    result = result.filter(d =>
+      d.class_enrollments?.some(e => e.active && e.class_id === filters.classId)
+    )
+  }
+
+  if (filters?.assignedTo) {
+    result = result.filter(d => d.discipleship_cases?.[0]?.assigned_to === filters.assignedTo)
+  }
+
+  return result
 }
 
 // Versão enxuta pra casos que só precisam de id/nome/telefone (ex.: dropdown

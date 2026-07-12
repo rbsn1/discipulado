@@ -106,7 +106,7 @@ export interface DiscipleWithCase extends Disciple {
 }
 
 // Versão enxuta usada na listagem de /discipulandos — só os campos
-// realmente renderizados na tabela (ver getDisciples em repositories/disciples.ts)
+// realmente renderizados/filtráveis na tabela (ver getDisciples em repositories/disciples.ts)
 export interface DiscipleListItem {
   id: string
   full_name: string
@@ -114,7 +114,10 @@ export interface DiscipleListItem {
   origin: string | null
   created_at: string
   worship_services: Pick<WorshipService, 'name'> | null
-  discipleship_cases: Pick<DiscipleshipCase, 'status'>[]
+  discipleship_cases: (Pick<DiscipleshipCase, 'status' | 'assigned_to'> & {
+    profiles: Pick<Profile, 'name'> | null
+  })[]
+  class_enrollments: { active: boolean; class_id: string; classes: Pick<Class, 'name'> | null }[]
 }
 
 export interface DiscipleshipCase {
