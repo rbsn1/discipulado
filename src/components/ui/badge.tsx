@@ -6,11 +6,11 @@ interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 const variantClasses = {
-  default: 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-600/20',
-  success: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20',
-  warning: 'bg-amber-50 text-amber-700 ring-1 ring-amber-600/20',
-  danger: 'bg-rose-50 text-rose-700 ring-1 ring-rose-600/20',
-  muted: 'bg-gray-50 text-gray-600 ring-1 ring-gray-500/20',
+  default: 'bg-indigo-100/70 text-indigo-800',
+  success: 'bg-emerald-100/70 text-emerald-800',
+  warning: 'bg-amber-100/70 text-amber-800',
+  danger: 'bg-rose-100/70 text-rose-800',
+  muted: 'bg-[#EFEDE7] text-[#6B6963]',
 }
 
 const dotClasses = {

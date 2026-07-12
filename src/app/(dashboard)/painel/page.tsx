@@ -23,25 +23,25 @@ interface StatCardProps {
   icon: React.ElementType
   href?: string
   accent: string
-  iconBg: string
   iconColor: string
 }
 
-function StatCard({ title, value, icon: Icon, href, accent, iconBg, iconColor }: StatCardProps) {
+function StatCard({ title, value, icon: Icon, href, accent, iconColor }: StatCardProps) {
   const content = (
-    <div className={`group relative overflow-hidden rounded-xl border border-gray-100 bg-white p-4 md:p-5 shadow-sm transition-all hover:shadow-md ${href ? 'cursor-pointer' : ''}`}>
+    <div className={`group relative overflow-hidden rounded-xl border border-[#E8E6E1] bg-white p-4 md:p-5 transition-colors hover:border-[#D8D5CC] ${href ? 'cursor-pointer' : ''}`}>
       <div className={`absolute inset-x-0 top-0 h-0.5 ${accent}`} />
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-400 leading-tight">{title}</p>
-          <p className="mt-1.5 text-2xl md:text-3xl font-bold text-gray-900">{value}</p>
-        </div>
-        <div className={`flex h-8 w-8 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-xl ${iconBg}`}>
-          <Icon className={`h-4 w-4 md:h-5 md:w-5 ${iconColor}`} />
-        </div>
+      <div className="flex items-center gap-1.5">
+        <Icon className={`h-3.5 w-3.5 shrink-0 ${iconColor}`} />
+        <p className="text-xs font-medium uppercase tracking-wide text-[#6B6963] leading-tight">{title}</p>
       </div>
+      <p
+        className="font-display mt-2 text-3xl md:text-4xl text-[#1C1B1A]"
+        style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}
+      >
+        {value}
+      </p>
       {href && (
-        <div className="mt-2 md:mt-3 flex items-center gap-1 text-xs text-gray-400 group-hover:text-gray-600 transition-colors">
+        <div className="mt-2 md:mt-3 flex items-center gap-1 text-xs text-[#6B6963] group-hover:text-[#1C1B1A] transition-colors">
           Ver detalhes <ChevronRight className="h-3 w-3" />
         </div>
       )}
@@ -101,8 +101,8 @@ export default async function PainelPage() {
     return (
       <div className="p-4 md:p-8 max-w-4xl mx-auto">
         <div className="mb-6 md:mb-8">
-          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Painel da Plataforma</h1>
-          <p className="mt-1 text-sm text-gray-500">Administração global do sistema</p>
+          <h1 className="font-display text-2xl md:text-3xl text-[#1C1B1A]" style={{ fontWeight: 600 }}>Painel da Plataforma</h1>
+          <p className="mt-1 text-sm text-[#6B6963]">Administração global do sistema</p>
         </div>
         <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-6">
           <div className="flex items-start gap-4">
@@ -134,7 +134,6 @@ export default async function PainelPage() {
       icon: UserCheck,
       href: '/acolhimento',
       accent: 'bg-indigo-500',
-      iconBg: 'bg-indigo-50',
       iconColor: 'text-indigo-600',
     },
     {
@@ -143,7 +142,6 @@ export default async function PainelPage() {
       icon: Users,
       href: '/acolhimento?status=PENDENTE_MATRICULA',
       accent: 'bg-amber-500',
-      iconBg: 'bg-amber-50',
       iconColor: 'text-amber-600',
     },
     {
@@ -152,7 +150,6 @@ export default async function PainelPage() {
       icon: BookOpen,
       href: '/acolhimento?status=EM_DISCIPULADO',
       accent: 'bg-sky-500',
-      iconBg: 'bg-sky-50',
       iconColor: 'text-sky-600',
     },
     {
@@ -161,7 +158,6 @@ export default async function PainelPage() {
       icon: PauseCircle,
       href: '/acolhimento?status=PAUSADO',
       accent: 'bg-slate-400',
-      iconBg: 'bg-slate-50',
       iconColor: 'text-slate-500',
     },
     {
@@ -170,7 +166,6 @@ export default async function PainelPage() {
       icon: CheckCircle2,
       href: '/pos-discipulado',
       accent: 'bg-emerald-500',
-      iconBg: 'bg-emerald-50',
       iconColor: 'text-emerald-600',
     },
   ]
@@ -184,8 +179,8 @@ export default async function PainelPage() {
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto">
       <div className="mb-6 md:mb-8">
-        <h1 className="text-xl md:text-2xl font-bold text-gray-900">Painel</h1>
-        <p className="mt-1 text-sm text-gray-500">Visão geral do discipulado da congregação</p>
+        <h1 className="font-display text-2xl md:text-3xl text-[#1C1B1A]" style={{ fontWeight: 600 }}>Painel</h1>
+        <p className="mt-1 text-sm text-[#6B6963]">Visão geral do discipulado da congregação</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 mb-8 md:mb-10">
@@ -195,7 +190,7 @@ export default async function PainelPage() {
       </div>
 
       <div>
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-400">
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-[#6B6963]">
           Ações recomendadas
         </h2>
         {!hasAlerts ? (

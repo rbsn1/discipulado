@@ -71,7 +71,7 @@ export function DashboardShell({ profile, congregationName, theme, children }: P
         </header>
 
         {/* ── Conteúdo principal ──────────────────────────────────────── */}
-        <main className="flex-1 overflow-y-auto bg-gray-50">
+        <main className="flex-1 overflow-y-auto bg-[#FAFAF8]">
           {children}
         </main>
       </div>
