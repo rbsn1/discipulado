@@ -35,8 +35,8 @@ function StatCard({ title, value, icon: Icon, href, accent, iconColor }: StatCar
         <p className="text-xs font-medium uppercase tracking-wide text-[#6B6963] leading-tight">{title}</p>
       </div>
       <p
-        className="font-display mt-2 text-3xl md:text-4xl text-[#1C1B1A]"
-        style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}
+        className="mt-2 text-3xl md:text-4xl font-bold text-[#1C1B1A]"
+        style={{ fontVariantNumeric: 'tabular-nums' }}
       >
         {value}
       </p>
@@ -101,7 +101,7 @@ export default async function PainelPage() {
     return (
       <div className="p-4 md:p-8 max-w-4xl mx-auto">
         <div className="mb-6 md:mb-8">
-          <h1 className="font-display text-2xl md:text-3xl text-[#1C1B1A]" style={{ fontWeight: 600 }}>Painel da Plataforma</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-[#1C1B1A]">Painel da Plataforma</h1>
           <p className="mt-1 text-sm text-[#6B6963]">Administração global do sistema</p>
         </div>
         <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-6">
@@ -179,7 +179,7 @@ export default async function PainelPage() {
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto">
       <div className="mb-6 md:mb-8">
-        <h1 className="font-display text-2xl md:text-3xl text-[#1C1B1A]" style={{ fontWeight: 600 }}>Painel</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-[#1C1B1A]">Painel</h1>
         <p className="mt-1 text-sm text-[#6B6963]">Visão geral do discipulado da congregação</p>
       </div>
 

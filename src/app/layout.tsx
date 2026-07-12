@@ -1,13 +1,6 @@
 import type { Metadata, Viewport } from 'next'
-import { Fraunces, Inter } from 'next/font/google'
+import { Inter } from 'next/font/google'
 import './globals.css'
-
-const fraunces = Fraunces({
-  subsets: ['latin'],
-  weight: ['500', '600'],
-  style: ['normal', 'italic'],
-  variable: '--font-display',
-})
 
 const inter = Inter({
   subsets: ['latin'],
@@ -34,7 +27,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={`h-full ${fraunces.variable} ${inter.variable}`}>
+    <html lang="pt-BR" className={`h-full ${inter.variable}`}>
       <body className="min-h-full antialiased">{children}</body>
     </html>
   )
