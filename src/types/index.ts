@@ -64,8 +64,27 @@ export interface Congregation {
   logo_url?: string | null
   accent_color?: string | null
   sidebar_color?: string | null
+  subscription_paid_until?: string | null
   created_at: string
   updated_at: string
+}
+
+export interface CongregationPayment {
+  id: string
+  congregation_id: string
+  paid_until: string
+  amount: number | null
+  note: string | null
+  recorded_by: string | null
+  recorded_at: string
+  profiles?: { name: string } | null
+}
+
+export interface AccessStatus {
+  blocked: boolean
+  reason: 'inactive' | 'overdue' | null
+  congregation_name: string | null
+  paid_until: string | null
 }
 
 export interface Profile {

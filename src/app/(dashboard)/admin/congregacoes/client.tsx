@@ -8,10 +8,11 @@ import { Select } from '@/components/ui/select'
 import { Dialog } from '@/components/ui/dialog'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Building2, Pencil } from 'lucide-react'
+import { Plus, Building2, Pencil, CreditCard } from 'lucide-react'
 import { THEME_PRESETS, deriveTheme } from '@/lib/theme'
 import { LogoUploader } from '@/components/features/admin/logo-uploader'
-import type { Congregation } from '@/types'
+import { formatDate, formatDateTime } from '@/lib/utils'
+import type { Congregation, CongregationPayment } from '@/types'
 
 const TIMEZONE_OPTIONS = [
   { value: 'America/Sao_Paulo',  label: 'Brasília (GMT-3)'             },
@@ -31,6 +32,15 @@ interface EditState {
   logoUrl:      string
   accentColor:  string
   sidebarColor: string
+}
+
+function billingBadge(c: Congregation): { variant: 'success' | 'danger' | 'muted'; label: string } {
+  if (!c.is_active) return { variant: 'muted', label: 'Desativada' }
+  if (!c.subscription_paid_until) return { variant: 'muted', label: 'Sem vencimento definido' }
+  const overdue = new Date(c.subscription_paid_until) < new Date(new Date().toDateString())
+  return overdue
+    ? { variant: 'danger', label: `Vencida em ${formatDate(c.subscription_paid_until)}` }
+    : { variant: 'success', label: `Em dia até ${formatDate(c.subscription_paid_until)}` }
 }
 
 // ── Preview realista com paleta derivada ──────────────────────────────────────
@@ -112,6 +122,15 @@ export function CongregacoesClient({ congregations }: Props) {
   const [editLoading, setEditLoading]       = useState(false)
   const [editError, setEditError]           = useState('')
 
+  const [paymentTarget, setPaymentTarget]   = useState<Congregation | null>(null)
+  const [paymentHistory, setPaymentHistory] = useState<CongregationPayment[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [paidUntil, setPaidUntil]           = useState('')
+  const [amount, setAmount]                 = useState('')
+  const [note, setNote]                     = useState('')
+  const [paymentLoading, setPaymentLoading] = useState(false)
+  const [paymentError, setPaymentError]     = useState('')
+
   function openEdit(c: Congregation) {
     setEditError('')
     setEditTarget({
@@ -168,6 +187,41 @@ export function CongregacoesClient({ congregations }: Props) {
     if (res.ok) router.refresh()
   }
 
+  async function openPayment(c: Congregation) {
+    setPaymentError('')
+    setPaymentTarget(c)
+    setPaidUntil(c.subscription_paid_until ?? '')
+    setAmount('')
+    setNote('')
+    setHistoryLoading(true)
+    const res = await fetch(`/api/admin/congregations/${c.id}/payment`)
+    if (res.ok) setPaymentHistory(await res.json())
+    setHistoryLoading(false)
+  }
+
+  async function handleRegisterPayment() {
+    if (!paymentTarget) return
+    if (!paidUntil) { setPaymentError('Data de vencimento obrigatória'); return }
+    setPaymentLoading(true)
+    setPaymentError('')
+    const res = await fetch(`/api/admin/congregations/${paymentTarget.id}/payment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        paid_until: paidUntil,
+        amount: amount ? Number(amount) : null,
+        note: note.trim() || null,
+      }),
+    })
+    if (!res.ok) {
+      setPaymentError((await res.json()).error)
+    } else {
+      setPaymentTarget(null)
+      router.refresh()
+    }
+    setPaymentLoading(false)
+  }
+
   return (
     <>
       <div className="mb-6 flex items-center justify-between">
@@ -199,9 +253,13 @@ export function CongregacoesClient({ congregations }: Props) {
               style={{ background: c.accent_color ?? '#4F46E5' }}
               title="Cor do tema"
             />
-            <Badge variant={c.is_active ? 'success' : 'muted'}>
-              {c.is_active ? 'Ativa' : 'Inativa'}
+            <Badge variant={billingBadge(c).variant}>
+              {billingBadge(c).label}
             </Badge>
+            <Button size="sm" variant="outline" onClick={() => openPayment(c)}>
+              <CreditCard className="h-3.5 w-3.5" />
+              Pagamento
+            </Button>
             <Button size="sm" variant="outline" onClick={() => openEdit(c)}>
               <Pencil className="h-3.5 w-3.5" />
               Editar
@@ -347,6 +405,89 @@ export function CongregacoesClient({ congregations }: Props) {
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setEditTarget(null)}>Cancelar</Button>
               <Button onClick={handleEdit} loading={editLoading}>Salvar</Button>
+            </div>
+          </div>
+        )}
+      </Dialog>
+
+      {/* ── Dialog: pagamento ── */}
+      <Dialog open={!!paymentTarget} onClose={() => setPaymentTarget(null)} title="Mensalidade">
+        {paymentTarget && (
+          <div className="flex flex-col gap-5">
+            {paymentError && <Alert type="error">{paymentError}</Alert>}
+
+            <div>
+              <p className="text-sm font-semibold text-gray-800">{paymentTarget.name}</p>
+              <Badge variant={billingBadge(paymentTarget).variant} className="mt-1.5">
+                {billingBadge(paymentTarget).label}
+              </Badge>
+            </div>
+
+            <div className="h-px bg-gray-100" />
+
+            <div>
+              <p className="mb-3 text-sm font-semibold text-gray-800">Registrar pagamento</p>
+              <div className="flex flex-col gap-3">
+                <Input
+                  type="date"
+                  label="Pago até *"
+                  value={paidUntil}
+                  onChange={e => setPaidUntil(e.target.value)}
+                />
+                <Input
+                  type="number"
+                  label="Valor (opcional)"
+                  placeholder="0,00"
+                  value={amount}
+                  onChange={e => setAmount(e.target.value)}
+                />
+                <Input
+                  label="Observação (opcional)"
+                  placeholder="Ex: PIX recebido dia 05"
+                  value={note}
+                  onChange={e => setNote(e.target.value)}
+                />
+              </div>
+              <div className="mt-3 flex justify-end">
+                <Button onClick={handleRegisterPayment} loading={paymentLoading}>
+                  Registrar pagamento
+                </Button>
+              </div>
+            </div>
+
+            <div className="h-px bg-gray-100" />
+
+            <div>
+              <p className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                Histórico
+              </p>
+              {historyLoading ? (
+                <p className="text-sm text-gray-400">Carregando…</p>
+              ) : paymentHistory.length === 0 ? (
+                <p className="text-sm text-gray-400">Nenhum pagamento registrado ainda.</p>
+              ) : (
+                <div className="flex flex-col gap-2 max-h-48 overflow-y-auto">
+                  {paymentHistory.map(p => (
+                    <div key={p.id} className="rounded-lg border border-gray-100 px-3 py-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-gray-800">
+                          Pago até {formatDate(p.paid_until)}
+                          {p.amount != null && ` · R$ ${p.amount.toFixed(2)}`}
+                        </span>
+                        <span className="text-gray-400">{formatDateTime(p.recorded_at)}</span>
+                      </div>
+                      {p.note && <p className="mt-1 text-gray-500">{p.note}</p>}
+                      {p.profiles?.name && (
+                        <p className="mt-1 text-gray-400">Registrado por {p.profiles.name}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end">
+              <Button variant="outline" onClick={() => setPaymentTarget(null)}>Fechar</Button>
             </div>
           </div>
         )}
