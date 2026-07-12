@@ -79,15 +79,15 @@ export default function LoginPage() {
         />
 
         {/* Círculos de brilho no fundo */}
-        <div className="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-indigo-600/20 blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-[400px] w-[400px] rounded-full bg-violet-700/20 blur-3xl" />
-        <div className="absolute top-1/2 left-1/3 h-[300px] w-[300px] rounded-full bg-indigo-500/10 blur-3xl" />
+        <div className="login-drift-1 absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-indigo-600/20 blur-3xl" />
+        <div className="login-drift-2 absolute bottom-0 right-0 h-[400px] w-[400px] rounded-full bg-violet-700/20 blur-3xl" />
+        <div className="login-drift-3 absolute top-1/2 left-1/3 h-[300px] w-[300px] rounded-full bg-indigo-500/10 blur-3xl" />
 
         {/* Conteúdo */}
         <div className="relative flex flex-1 flex-col justify-between p-12 xl:p-16">
 
           {/* Logo */}
-          <div className="flex items-center gap-3">
+          <div className="login-reveal flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-400 to-indigo-600 shadow-lg shadow-indigo-900/60 ring-1 ring-white/10">
               <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -103,14 +103,20 @@ export default function LoginPage() {
 
           {/* Headline central */}
           <div>
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1">
+            <div
+              className="login-reveal mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1"
+              style={{ animationDelay: '90ms' }}
+            >
               <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
               <span className="text-xs font-medium text-indigo-300 tracking-wide">
                 Plataforma de gestão ministerial
               </span>
             </div>
 
-            <h1 className="text-4xl xl:text-5xl font-bold leading-tight tracking-tight text-white">
+            <h1
+              className="login-reveal text-4xl xl:text-5xl font-bold leading-tight tracking-tight text-white"
+              style={{ animationDelay: '170ms' }}
+            >
               Discipule com{' '}
               <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">
                 propósito
@@ -118,14 +124,21 @@ export default function LoginPage() {
               <br />e precisão.
             </h1>
 
-            <p className="mt-4 max-w-sm text-base text-slate-400 leading-relaxed">
+            <p
+              className="login-reveal mt-4 max-w-sm text-base text-slate-400 leading-relaxed"
+              style={{ animationDelay: '250ms' }}
+            >
               Acompanhe cada pessoa da recepção à integração. Tudo em um só lugar, seguro e organizado.
             </p>
 
             {/* Features */}
             <ul className="mt-8 flex flex-col gap-3">
-              {features.map(f => (
-                <li key={f.label} className="flex items-center gap-3">
+              {features.map((f, i) => (
+                <li
+                  key={f.label}
+                  className="login-reveal flex items-center gap-3"
+                  style={{ animationDelay: `${330 + i * 60}ms` }}
+                >
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-500/15 text-indigo-400 ring-1 ring-indigo-500/20">
                     {f.icon}
                   </div>
@@ -136,7 +149,7 @@ export default function LoginPage() {
           </div>
 
           {/* Footer: versículo + métricas */}
-          <div>
+          <div className="login-reveal" style={{ animationDelay: '600ms' }}>
             {/* Separador */}
             <div className="mb-6 h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
 
