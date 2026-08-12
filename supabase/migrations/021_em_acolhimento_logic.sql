@@ -3,9 +3,18 @@
 -- Regra de negócio: um case agora nasce como EM_ACOLHIMENTO (não mais
 -- direto em PENDENTE_MATRICULA). Só vira PENDENTE_MATRICULA — liberando
 -- a matrícula em turma — quando a presença é confirmada numa Festa de
--- Boas Vindas (event_confirmations.attended = true). Reaproveita o
--- padrão já usado em 006_auto_module_progress.sql (trigger que avança
+-- Boas Vindas E o evento em si está com status REALIZADO. Reaproveita
+-- o padrão já usado em 006_auto_module_progress.sql (trigger que avança
 -- estado automaticamente, nunca regride sozinho).
+--
+-- As duas condições podem acontecer em qualquer ordem — alguém pode ser
+-- marcado presente antes ou depois do evento ser fechado como Realizado
+-- — por isso são dois gatilhos, um em cada tabela, chamando a mesma
+-- função de promoção:
+--   1. event_confirmations (attended vira true) → promove se o evento
+--      já estiver Realizado.
+--   2. events (status vira REALIZADO) → promove todo mundo que já
+--      estava marcado presente nesse evento.
 --
 -- Cases já existentes NÃO são migrados retroativamente — quem já está
 -- em PENDENTE_MATRICULA continua lá; a mudança vale só pra cases
@@ -77,16 +86,49 @@ end;
 $$;
 
 -- ---------------------------------------------------------------
--- Trigger: confirmar presença numa Festa de Boas Vindas libera a
--- matrícula (EM_ACOLHIMENTO → PENDENTE_MATRICULA). Nunca regride —
--- desmarcar presença depois não volta o case pra EM_ACOLHIMENTO.
+-- Função compartilhada: promove UM case de EM_ACOLHIMENTO pra
+-- PENDENTE_MATRICULA, se ainda estiver nesse status. Nunca regride.
+-- Chamada pelos dois gatilhos abaixo.
 -- ---------------------------------------------------------------
-create or replace function auto_advance_case_after_fbv_confirmation()
+create or replace function advance_case_after_fbv_confirmation(p_case_id uuid, p_actor uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update discipleship_cases
+  set
+    status     = 'PENDENTE_MATRICULA',
+    updated_at = now()
+  where id = p_case_id
+    and status = 'EM_ACOLHIMENTO';
+
+  if found then
+    insert into case_events (case_id, type, description, created_by)
+    values (
+      p_case_id,
+      'ACOLHIMENTO',
+      'Presença confirmada em Festa de Boas Vindas realizada — matrícula liberada',
+      p_actor
+    );
+  end if;
+end;
+$$;
+
+-- ---------------------------------------------------------------
+-- Gatilho 1: presença marcada — só promove se o evento já estiver
+-- Realizado (se ainda estiver Planejado, o gatilho 2 cuida disso
+-- quando o evento for fechado).
+-- ---------------------------------------------------------------
+create or replace function trg_fn_confirmation_attended()
 returns trigger
 language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  v_event_status event_status;
 begin
   if (TG_OP = 'DELETE') then
     return old;
@@ -96,21 +138,10 @@ begin
     return new;
   end if;
 
-  update discipleship_cases
-  set
-    status     = 'PENDENTE_MATRICULA',
-    updated_at = now()
-  where id = new.case_id
-    and status = 'EM_ACOLHIMENTO';
+  select status into v_event_status from events where id = new.event_id;
 
-  if found then
-    insert into case_events (case_id, type, description, created_by)
-    values (
-      new.case_id,
-      'ACOLHIMENTO',
-      'Presença confirmada na Festa de Boas Vindas — matrícula liberada',
-      new.created_by
-    );
+  if v_event_status = 'REALIZADO' then
+    perform advance_case_after_fbv_confirmation(new.case_id, new.created_by);
   end if;
 
   return new;
@@ -123,7 +154,43 @@ create trigger trg_auto_advance_case_after_fbv
   after insert or update of attended
   on event_confirmations
   for each row
-  execute function auto_advance_case_after_fbv_confirmation();
+  execute function trg_fn_confirmation_attended();
+
+-- ---------------------------------------------------------------
+-- Gatilho 2: evento vira Realizado — promove todo mundo que já
+-- estava marcado presente nele (cobre quem foi confirmado antes do
+-- evento ser fechado).
+-- ---------------------------------------------------------------
+create or replace function trg_fn_event_realizado()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  r record;
+begin
+  if new.status = 'REALIZADO' and (old.status is distinct from 'REALIZADO') then
+    for r in
+      select case_id, created_by
+      from event_confirmations
+      where event_id = new.id and attended = true
+    loop
+      perform advance_case_after_fbv_confirmation(r.case_id, r.created_by);
+    end loop;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_auto_advance_cases_on_event_realizado on events;
+
+create trigger trg_auto_advance_cases_on_event_realizado
+  after update of status
+  on events
+  for each row
+  execute function trg_fn_event_realizado();
 
 -- ---------------------------------------------------------------
 -- Índice de "um case ativo por discipulando" precisa considerar

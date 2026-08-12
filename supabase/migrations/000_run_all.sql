@@ -2338,12 +2338,40 @@ begin
 end;
 $$;
 
-create or replace function auto_advance_case_after_fbv_confirmation()
+create or replace function advance_case_after_fbv_confirmation(p_case_id uuid, p_actor uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update discipleship_cases
+  set
+    status     = 'PENDENTE_MATRICULA',
+    updated_at = now()
+  where id = p_case_id
+    and status = 'EM_ACOLHIMENTO';
+
+  if found then
+    insert into case_events (case_id, type, description, created_by)
+    values (
+      p_case_id,
+      'ACOLHIMENTO',
+      'Presença confirmada em Festa de Boas Vindas realizada — matrícula liberada',
+      p_actor
+    );
+  end if;
+end;
+$$;
+
+create or replace function trg_fn_confirmation_attended()
 returns trigger
 language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  v_event_status event_status;
 begin
   if (TG_OP = 'DELETE') then
     return old;
@@ -2353,21 +2381,10 @@ begin
     return new;
   end if;
 
-  update discipleship_cases
-  set
-    status     = 'PENDENTE_MATRICULA',
-    updated_at = now()
-  where id = new.case_id
-    and status = 'EM_ACOLHIMENTO';
+  select status into v_event_status from events where id = new.event_id;
 
-  if found then
-    insert into case_events (case_id, type, description, created_by)
-    values (
-      new.case_id,
-      'ACOLHIMENTO',
-      'Presença confirmada na Festa de Boas Vindas — matrícula liberada',
-      new.created_by
-    );
+  if v_event_status = 'REALIZADO' then
+    perform advance_case_after_fbv_confirmation(new.case_id, new.created_by);
   end if;
 
   return new;
@@ -2380,7 +2397,38 @@ create trigger trg_auto_advance_case_after_fbv
   after insert or update of attended
   on event_confirmations
   for each row
-  execute function auto_advance_case_after_fbv_confirmation();
+  execute function trg_fn_confirmation_attended();
+
+create or replace function trg_fn_event_realizado()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  r record;
+begin
+  if new.status = 'REALIZADO' and (old.status is distinct from 'REALIZADO') then
+    for r in
+      select case_id, created_by
+      from event_confirmations
+      where event_id = new.id and attended = true
+    loop
+      perform advance_case_after_fbv_confirmation(r.case_id, r.created_by);
+    end loop;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_auto_advance_cases_on_event_realizado on events;
+
+create trigger trg_auto_advance_cases_on_event_realizado
+  after update of status
+  on events
+  for each row
+  execute function trg_fn_event_realizado();
 
 drop index if exists idx_cases_one_active_per_disciple;
 
