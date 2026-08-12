@@ -22,7 +22,7 @@ import {
 } from 'lucide-react'
 import type { Profile } from '@/types'
 import type { EventWithCounts } from '@/lib/repositories/events'
-import { isAfter, parseISO, startOfDay } from 'date-fns'
+import { isAfter, isBefore, parseISO, startOfDay, startOfWeek, startOfMonth, startOfYear } from 'date-fns'
 
 // ─── Helpers de status ──────────────────────────────────────────────────────
 
@@ -44,6 +44,14 @@ const STATUS_LABEL: Record<string, string> = {
   CANCELADO: 'Cancelado',
 }
 
+type Period = '' | 'semana' | 'mes' | 'ano'
+
+const PERIOD_OPTIONS: { value: Period; label: string }[] = [
+  { value: 'semana', label: 'Semana' },
+  { value: 'mes', label: 'Mês' },
+  { value: 'ano', label: 'Ano' },
+]
+
 // ─── Props ──────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -64,21 +72,33 @@ export function ConfraternizacaoClient({ events, congregationId, currentProfile 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
+  const [period, setPeriod] = useState<Period>('')
 
   const canManage = ['ADMIN_DISCIPULADO', 'ADMIN_PLATAFORMA'].includes(currentProfile.role)
 
-  // ── Filtrar por busca / esconder realizados por padrão ──
+  // ── Filtrar por busca (título) e/ou período / esconder realizados por padrão ──
   // Evento "Realizado" some da tela assim que concluído — continua acessível
-  // buscando pelo título.
+  // buscando pelo título ou limitando por semana/mês/ano.
 
-  const isSearching = search.trim().length > 0
-  const visibleEvents = isSearching
-    ? events.filter(ev => ev.title.toLowerCase().includes(search.trim().toLowerCase()))
+  const today = startOfDay(new Date())
+  const periodStart =
+    period === 'semana' ? startOfWeek(today, { weekStartsOn: 1 }) :
+    period === 'mes'    ? startOfMonth(today) :
+    period === 'ano'    ? startOfYear(today) :
+    null
+
+  const isFiltering = search.trim().length > 0 || period !== ''
+  const visibleEvents = isFiltering
+    ? events.filter(ev => {
+        const matchesSearch = !search.trim() || ev.title.toLowerCase().includes(search.trim().toLowerCase())
+        const evDate = parseISO(ev.date)
+        const matchesPeriod = !periodStart || (!isBefore(evDate, periodStart) && !isAfter(evDate, today))
+        return matchesSearch && matchesPeriod
+      })
     : events.filter(ev => ev.status !== 'REALIZADO')
 
   // ── Separar eventos futuros/passados ──
 
-  const today = startOfDay(new Date())
   const upcoming = visibleEvents.filter(ev =>
     ev.status !== 'CANCELADO' && isAfter(parseISO(ev.date), today) || ev.date === today.toISOString().slice(0, 10)
   )
@@ -143,15 +163,35 @@ export function ConfraternizacaoClient({ events, congregationId, currentProfile 
         )}
       </div>
 
-      <div className="relative mb-6 max-w-xs">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-        <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Buscar evento por título..."
-          className="h-9 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-base sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-        />
+      <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative max-w-xs w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Buscar evento por título..."
+            className="h-9 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-base sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+          />
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          {PERIOD_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setPeriod(p => p === opt.value ? '' : opt.value)}
+              className={cn(
+                'h-9 rounded-lg border px-3 text-sm font-medium transition-colors',
+                period === opt.value
+                  ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                  : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {error && <Alert type="error" className="mb-4">{error}</Alert>}
@@ -164,7 +204,7 @@ export function ConfraternizacaoClient({ events, congregationId, currentProfile 
 
       {events.length > 0 && visibleEvents.length === 0 && (
         <div className="rounded-xl border border-dashed border-gray-300 py-12 text-center text-gray-500">
-          {isSearching ? 'Nenhum evento encontrado' : 'Nenhum evento em andamento. Busque pelo título pra ver os já realizados.'}
+          {isFiltering ? 'Nenhum evento encontrado' : 'Nenhum evento em andamento. Busque pelo título ou filtre por período pra ver os já realizados.'}
         </div>
       )}
 
