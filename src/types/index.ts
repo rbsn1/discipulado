@@ -24,10 +24,12 @@ export type ClassShift = 'MANHA' | 'TARDE' | 'NOITE' | 'NAO_INFORMADO'
 export type AttendanceStatus = 'PRESENTE' | 'FALTA' | 'JUSTIFICADA'
 
 export type ContactOutcome =
-  | 'ATENDEU'
-  | 'NAO_ATENDEU'
-  | 'MENSAGEM_ENVIADA'
-  | 'VISITA_REALIZADA'
+  | 'ACEITOU_FBV'
+  | 'NAO_ACEITOU_FBV'
+  | 'CONTATO_ERRADO'
+  | 'NAO_ATENDE'
+  | 'NAO_RESPONDE'
+  | 'OUTROS'
 
 export type EventType = 'CONFRATERNIZACAO'
 
@@ -338,6 +340,7 @@ export interface CreateDiscipleInput {
   origin?: string
   worship_service_id?: string
   notes?: string
+  assigned_to?: string
 }
 
 export interface StartCaseInput {

@@ -190,6 +190,7 @@ export function DisciplesClientPage({
       <Dialog open={showForm} onClose={() => setShowForm(false)} title="Novo Discipulando">
         <DiscipleForm
           worshipServices={worshipServices}
+          acolhedores={discipuladores}
           onSubmit={handleCreate}
           onCancel={() => setShowForm(false)}
         />

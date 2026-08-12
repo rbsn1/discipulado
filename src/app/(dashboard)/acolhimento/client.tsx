@@ -47,10 +47,12 @@ const COLUMNS: { status: CaseStatus; label: string; color: string }[] = [
 ]
 
 const CONTACT_OUTCOMES: { value: ContactOutcome; label: string }[] = [
-  { value: 'ATENDEU',          label: 'Atendeu'           },
-  { value: 'NAO_ATENDEU',      label: 'Não atendeu'       },
-  { value: 'MENSAGEM_ENVIADA', label: 'Mensagem enviada'  },
-  { value: 'VISITA_REALIZADA', label: 'Visita realizada'  },
+  { value: 'ACEITOU_FBV',     label: 'Aceitou participar da FBV'      },
+  { value: 'NAO_ACEITOU_FBV', label: 'Não aceitou participar da FBV'  },
+  { value: 'CONTATO_ERRADO',  label: 'Contato errado'                 },
+  { value: 'NAO_ATENDE',      label: 'Não atende'                     },
+  { value: 'NAO_RESPONDE',    label: 'Não responde'                   },
+  { value: 'OUTROS',          label: 'Outros'                         },
 ]
 
 // Limite de cards por coluna antes de paginar
@@ -133,7 +135,7 @@ export function AcolhimentoClient({
 
   // Modal: registrar contato inline
   const [contactCaseId, setContactCaseId] = useState<string | null>(null)
-  const [contactOutcome, setContactOutcome] = useState<ContactOutcome>('ATENDEU')
+  const [contactOutcome, setContactOutcome] = useState<ContactOutcome>('ACEITOU_FBV')
   const [contactNote, setContactNote]   = useState('')
 
   // Modal: iniciar acolhimento (novo case)
@@ -271,9 +273,9 @@ export function AcolhimentoClient({
             value={filterDiscipulador}
             onChange={e => setFilterDiscipulador(e.target.value)}
             className="h-9 w-full sm:w-auto rounded-lg border border-gray-200 bg-white px-3 text-base sm:text-sm text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-            aria-label="Filtrar por discipulador"
+            aria-label="Filtrar por acolhedor"
           >
-            <option value="">Todos os discipuladores</option>
+            <option value="">Todos os acolhedores</option>
             <option value="__none__">Sem responsável</option>
             {discipuladores.map(d => (
               <option key={d.id} value={d.id}>{d.name}</option>
@@ -335,7 +337,7 @@ export function AcolhimentoClient({
                     loading={loading}
                     canManage={canManage}
                     onAssign={() => { setAssignCaseId(c.id); setAssignedTo(c.assigned_to ?? '') }}
-                    onContact={() => { setContactCaseId(c.id); setContactOutcome('ATENDEU'); setContactNote('') }}
+                    onContact={() => { setContactCaseId(c.id); setContactOutcome('ACEITOU_FBV'); setContactNote('') }}
                     onPause={() => doAction(c.id, 'pause')}
                     onResume={() => doAction(c.id, 'resume')}
                   />
@@ -359,7 +361,7 @@ export function AcolhimentoClient({
       <Dialog open={!!assignCaseId} onClose={() => setAssignCaseId(null)} title="Atribuir Responsável">
         <div className="flex flex-col gap-4">
           <Select
-            label="Discipulador"
+            label="Acolhedor"
             value={assignedTo}
             onChange={e => setAssignedTo(e.target.value)}
             placeholder="Nenhum (remover atribuição)"

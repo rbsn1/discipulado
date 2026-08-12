@@ -207,7 +207,7 @@ export default async function PainelPage() {
               count={stats.sem_responsavel}
               icon={UserX}
               href="/acolhimento?filter=sem_responsavel"
-              description="Cases ativos sem discipulador atribuído."
+              description="Cases ativos sem acolhedor atribuído."
               severity="warning"
             />
             <AlertCard

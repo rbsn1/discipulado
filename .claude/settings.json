@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -viE \"DISCIPULADOR'|discipuladores\\\\b|filterDiscipulador|initialDiscipulador|Discipulador=\\\\{|discipulador\\\\?:|discipulador,|discipulador\\\\}|const \\\\{|searchParams|c\\\\.discipulador\")",
+      "Bash(command -v nvm)",
+      "Bash(npx --version)",
+      "Bash(command -v supabase)",
+      "Bash(supabase --version)"
+    ]
+  }
+}

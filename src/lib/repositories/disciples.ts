@@ -135,16 +135,16 @@ export async function updateDisciple(
   input: Partial<CreateDiscipleInput>
 ): Promise<Disciple> {
   const supabase = await createClient()
+  const payload: Record<string, unknown> = { ...input }
+  // Só força null nos campos opcionais que vieram no payload (string vazia -> null);
+  // campos ausentes (ex.: email/endereço, removidos do form) não devem ser sobrescritos.
+  for (const field of ['phone', 'email', 'birth_date', 'address', 'conversion_date'] as const) {
+    if (field in input) payload[field] = input[field] || null
+  }
+
   const { data, error } = await supabase
     .from('disciples')
-    .update({
-      ...input,
-      phone: input.phone || null,
-      email: input.email || null,
-      birth_date: input.birth_date || null,
-      address: input.address || null,
-      conversion_date: input.conversion_date || null,
-    })
+    .update(payload)
     .eq('id', id)
     .select()
     .single()

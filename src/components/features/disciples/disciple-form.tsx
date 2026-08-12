@@ -6,18 +6,20 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Alert } from '@/components/ui/alert'
-import type { Disciple, CreateDiscipleInput, WorshipService } from '@/types'
+import type { Disciple, CreateDiscipleInput, WorshipService, Profile } from '@/types'
 
 interface DiscipleFormProps {
   defaultValues?: Partial<Disciple>
   worshipServices: WorshipService[]
+  acolhedores?: Profile[]
   onSubmit: (data: CreateDiscipleInput) => Promise<{ error?: string } | void>
   onCancel: () => void
 }
 
-export function DiscipleForm({ defaultValues, worshipServices, onSubmit, onCancel }: DiscipleFormProps) {
+export function DiscipleForm({ defaultValues, worshipServices, acolhedores, onSubmit, onCancel }: DiscipleFormProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const isCreate = !defaultValues?.id
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -27,13 +29,11 @@ export function DiscipleForm({ defaultValues, worshipServices, onSubmit, onCance
     const data: CreateDiscipleInput = {
       full_name: fd.get('full_name') as string,
       phone: (fd.get('phone') as string) || undefined,
-      email: (fd.get('email') as string) || undefined,
       birth_date: (fd.get('birth_date') as string) || undefined,
-      address: (fd.get('address') as string) || undefined,
       conversion_date: (fd.get('conversion_date') as string) || undefined,
-      origin: (fd.get('origin') as string) || undefined,
       worship_service_id: (fd.get('worship_service_id') as string) || undefined,
       notes: (fd.get('notes') as string) || undefined,
+      ...(isCreate ? { assigned_to: (fd.get('assigned_to') as string) || undefined } : {}),
     }
     const result = await onSubmit(data)
     if (result?.error) {
@@ -63,35 +63,19 @@ export function DiscipleForm({ defaultValues, worshipServices, onSubmit, onCance
           type="tel"
         />
         <Input
-          name="email"
-          label="E-mail"
-          defaultValue={defaultValues?.email ?? ''}
-          placeholder="email@exemplo.com"
-          type="email"
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <Input
           name="birth_date"
           label="Data de nascimento"
           defaultValue={defaultValues?.birth_date ?? ''}
           type="date"
         />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
         <Input
           name="conversion_date"
           label="Data de conversão"
           defaultValue={defaultValues?.conversion_date ?? ''}
           type="date"
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <Input
-          name="origin"
-          label="Origem"
-          defaultValue={defaultValues?.origin ?? ''}
-          placeholder="Como chegou à igreja"
         />
         <Select
           name="worship_service_id"
@@ -102,12 +86,14 @@ export function DiscipleForm({ defaultValues, worshipServices, onSubmit, onCance
         />
       </div>
 
-      <Input
-        name="address"
-        label="Endereço"
-        defaultValue={defaultValues?.address ?? ''}
-        placeholder="Rua, número, bairro"
-      />
+      {isCreate && (
+        <Select
+          name="assigned_to"
+          label="Acolhedor"
+          placeholder="Selecionar acolhedor"
+          options={(acolhedores ?? []).map(a => ({ value: a.id, label: a.name }))}
+        />
+      )}
 
       <Textarea
         name="notes"

@@ -96,7 +96,7 @@ function MonthlyChart({ data }: { data: MonthlyPoint[] }) {
 }
 
 function downloadCSV(cases: ReportCase[]) {
-  const header = ['Nome', 'Telefone', 'Discipulador', 'Departamento', 'Integração', 'Batismo', 'Atualizado']
+  const header = ['Nome', 'Telefone', 'Acolhedor', 'Departamento', 'Integração', 'Batismo', 'Atualizado']
   const rows = cases.map(c => [
     c.disciple_name,
     c.disciple_phone ?? '',
@@ -238,7 +238,7 @@ export function RelatoriosClient({ stats, cases, monthly }: Props) {
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50">
                   <th className="px-4 py-3 text-left font-medium text-gray-500">Nome</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Discipulador</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">Acolhedor</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">Departamento</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">Integração</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">Batismo</th>

@@ -89,10 +89,12 @@ interface Props {
 }
 
 const CONTACT_OUTCOMES: { value: ContactOutcome; label: string }[] = [
-  { value: 'ATENDEU', label: 'Atendeu' },
-  { value: 'NAO_ATENDEU', label: 'Não atendeu' },
-  { value: 'MENSAGEM_ENVIADA', label: 'Mensagem enviada' },
-  { value: 'VISITA_REALIZADA', label: 'Visita realizada' },
+  { value: 'ACEITOU_FBV', label: 'Aceitou participar da FBV' },
+  { value: 'NAO_ACEITOU_FBV', label: 'Não aceitou participar da FBV' },
+  { value: 'CONTATO_ERRADO', label: 'Contato errado' },
+  { value: 'NAO_ATENDE', label: 'Não atende' },
+  { value: 'NAO_RESPONDE', label: 'Não responde' },
+  { value: 'OUTROS', label: 'Outros' },
 ]
 
 const MODULE_STATUS_OPTIONS = [
@@ -129,7 +131,7 @@ export function DiscipleDetailClient({
   const [selectedClass, setSelectedClass] = useState('')
 
   // Contact form
-  const [contactOutcome, setContactOutcome] = useState<ContactOutcome>('ATENDEU')
+  const [contactOutcome, setContactOutcome] = useState<ContactOutcome>('ACEITOU_FBV')
   const [contactNote, setContactNote] = useState('')
 
   const canEdit = ['ADMIN_DISCIPULADO', 'DISCIPULADOR', 'SECRETARIA_DISCIPULADO', 'SM_DISCIPULADO', 'ADMIN_PLATAFORMA'].includes(currentProfile.role)
@@ -527,7 +529,7 @@ export function DiscipleDetailClient({
           />
           <Select
             label="Responsável"
-            placeholder="Selecionar discipulador"
+            placeholder="Selecionar acolhedor"
             value={assignedTo}
             onChange={e => setAssignedTo(e.target.value)}
             options={discipuladores.filter(d =>

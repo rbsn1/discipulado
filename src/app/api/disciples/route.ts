@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentProfile } from '@/lib/repositories/profiles'
 import { createDisciple, getDisciples } from '@/lib/repositories/disciples'
+import { startCase } from '@/lib/repositories/cases'
 
 export async function GET(req: NextRequest) {
   const profile = await getCurrentProfile()
@@ -30,6 +31,17 @@ export async function POST(req: NextRequest) {
 
   try {
     const disciple = await createDisciple(profile.congregation_id, body, profile.id)
+    if (body.assigned_to) {
+      await startCase(
+        {
+          disciple_id: disciple.id,
+          assigned_to: body.assigned_to,
+          welcomed_on: new Date().toISOString().slice(0, 10),
+        },
+        profile.congregation_id,
+        profile.id
+      )
+    }
     return NextResponse.json(disciple, { status: 201 })
   } catch (err: unknown) {
     const msg = (err as { message?: string })?.message ?? 'Erro interno'

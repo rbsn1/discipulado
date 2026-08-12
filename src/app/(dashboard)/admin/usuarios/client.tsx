@@ -14,7 +14,7 @@ import type { ProfileWithCongregation, UserRole, Profile } from '@/types'
 
 const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: 'ADMIN_DISCIPULADO', label: 'Admin Discipulado' },
-  { value: 'DISCIPULADOR', label: 'Discipulador' },
+  { value: 'DISCIPULADOR', label: 'Acolhedor' },
   { value: 'SECRETARIA_DISCIPULADO', label: 'Secretaria' },
   { value: 'SM_DISCIPULADO', label: 'SM Discipulado' },
 ]

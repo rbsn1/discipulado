@@ -49,7 +49,7 @@ export const CASE_STAGE_LABEL: Record<CaseStage, string> = {
 export const ROLE_LABEL: Record<UserRole, string> = {
   ADMIN_PLATAFORMA: 'Admin da Plataforma',
   ADMIN_DISCIPULADO: 'Admin do Discipulado',
-  DISCIPULADOR: 'Discipulador',
+  DISCIPULADOR: 'Acolhedor',
   SECRETARIA_DISCIPULADO: 'Secretaria',
   SM_DISCIPULADO: 'SM Discipulado',
 }
