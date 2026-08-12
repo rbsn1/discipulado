@@ -304,7 +304,7 @@ export function DiscipleDetailClient({
       {activeCase?.status === 'PENDENTE_MATRICULA' && !hasAttendedConfraternizacao && (
         <Alert type="warning" className="mb-4">
           <AlertCircle className="inline h-4 w-4 mr-1" />
-          Aguardando participação em uma confraternização para liberar a matrícula em turma.
+          Aguardando participação em uma Festa de Boas Vindas para liberar a matrícula em turma.
         </Alert>
       )}
 
@@ -554,7 +554,7 @@ export function DiscipleDetailClient({
         <div className="flex flex-col gap-4">
           {preferredShift && (
             <div className="rounded-lg bg-indigo-50 px-3 py-2 text-sm text-indigo-800">
-              Turno preferido (confraternização): <strong>{preferredShift}</strong>
+              Turno preferido (Festa de Boas Vindas): <strong>{preferredShift}</strong>
             </div>
           )}
           <Select

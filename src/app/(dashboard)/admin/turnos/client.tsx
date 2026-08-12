@@ -70,7 +70,7 @@ export function TurnosClient({ shifts }: Props) {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Turnos</h1>
-          <p className="text-sm text-gray-500 mt-1">Catálogo de turnos usado nas turmas e na Confraternização</p>
+          <p className="text-sm text-gray-500 mt-1">Catálogo de turnos usado nas turmas e na Festa de Boas Vindas</p>
         </div>
         <Button onClick={openCreate}>
           <Plus className="h-4 w-4" />

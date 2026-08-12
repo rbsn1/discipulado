@@ -206,7 +206,7 @@ export function EventDetailClient({ event, activeCases, attendedCaseIds, accepte
     <>
       {/* Breadcrumb */}
       <div className="mb-2 flex items-center gap-2 text-sm text-gray-500">
-        <Link href="/confraternizacao" className="hover:underline">Confraternização</Link>
+        <Link href="/confraternizacao" className="hover:underline">Festa de Boas Vindas</Link>
         <ChevronRight className="h-4 w-4" />
         <span className="truncate">{event.title}</span>
       </div>
@@ -395,7 +395,7 @@ export function EventDetailClient({ event, activeCases, attendedCaseIds, accepte
 
           {unconfirmedCases.length === 0 ? (
             <p className="px-4 py-6 text-center text-sm text-gray-500">
-              {addSearch ? 'Nenhum discipulando encontrado' : 'Todos os discipulandos que aceitaram participar da FBV já foram adicionados ou já participaram de uma confraternização'}
+              {addSearch ? 'Nenhum discipulando encontrado' : 'Todos os discipulandos que aceitaram participar da FBV já foram adicionados ou já participaram de uma Festa de Boas Vindas'}
             </p>
           ) : (
             <div className="overflow-x-auto">

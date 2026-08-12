@@ -161,7 +161,7 @@ export function ConfraternizacaoClient({ events, congregationId, currentProfile 
   return (
     <>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-gray-900">Confraternização</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Festa de Boas Vindas</h1>
         {canManage && (
           <Button onClick={openCreate}>
             <Plus className="h-4 w-4" />
@@ -258,7 +258,7 @@ export function ConfraternizacaoClient({ events, congregationId, currentProfile 
       <Dialog
         open={showForm}
         onClose={() => setShowForm(false)}
-        title={editEvent ? 'Editar Evento' : 'Novo Evento de Confraternização'}
+        title={editEvent ? 'Editar Evento' : 'Nova Festa de Boas Vindas'}
       >
         <div className="flex flex-col gap-4">
           {error && <Alert type="error">{error}</Alert>}

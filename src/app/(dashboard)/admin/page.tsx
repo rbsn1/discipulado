@@ -41,7 +41,7 @@ export default async function AdminPage() {
       href: '/admin/turnos',
       icon: Clock,
       title: 'Turnos',
-      description: 'Configurar catálogo de turnos usado nas turmas e na Confraternização',
+      description: 'Configurar catálogo de turnos usado nas turmas e na Festa de Boas Vindas',
       adminOnly: false,
     },
     {
