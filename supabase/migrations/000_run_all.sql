@@ -2160,3 +2160,115 @@ create policy "class_shifts_delete" on class_shifts for delete
       and has_role(array['ADMIN_DISCIPULADO']::user_role[])
     )
   );
+
+-- =============================================================
+-- 018_departments_catalog.sql
+-- =============================================================
+
+create table departments (
+  id               uuid primary key default gen_random_uuid(),
+  congregation_id  uuid not null references congregations(id) on delete restrict,
+  name             text not null,
+  is_active        boolean not null default true,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now()
+);
+
+insert into departments (congregation_id, name)
+select distinct dc.congregation_id, trim(pd.department_name)
+from post_discipleship pd
+join discipleship_cases dc on dc.id = pd.case_id
+where pd.department_name is not null and trim(pd.department_name) <> '';
+
+alter table post_discipleship
+  add column department_id uuid references departments(id) on delete restrict;
+
+update post_discipleship pd
+  set department_id = d.id
+  from discipleship_cases dc
+  join departments d on d.congregation_id = dc.congregation_id
+  where dc.id = pd.case_id
+    and pd.department_name is not null
+    and trim(pd.department_name) = d.name;
+
+alter table departments enable row level security;
+
+create policy "departments_select" on departments for select
+  using (
+    is_platform_admin()
+    or congregation_id = auth_congregation_id()
+  );
+
+create policy "departments_insert" on departments for insert
+  with check (
+    is_platform_admin()
+    or (
+      congregation_id = auth_congregation_id()
+      and has_role(array['ADMIN_DISCIPULADO']::user_role[])
+    )
+  );
+
+create policy "departments_update" on departments for update
+  using (
+    is_platform_admin()
+    or (
+      congregation_id = auth_congregation_id()
+      and has_role(array['ADMIN_DISCIPULADO']::user_role[])
+    )
+  );
+
+create policy "departments_delete" on departments for delete
+  using (
+    is_platform_admin()
+    or (
+      congregation_id = auth_congregation_id()
+      and has_role(array['ADMIN_DISCIPULADO']::user_role[])
+    )
+  );
+
+-- =============================================================
+-- 019_report_stats_department_id.sql
+-- =============================================================
+
+create or replace function get_report_stats()
+returns table (
+  total_cases            int,
+  acolhimento            int,
+  em_discipulado         int,
+  pausado                int,
+  concluido              int,
+  sem_departamento       int,
+  aguardando_confirmacao int,
+  confirmados            int,
+  batizados              int
+)
+language sql stable security definer
+set search_path = public
+as $$
+  select
+    count(*)::int,
+    count(*) filter (
+      where dc.stage = 'ACOLHIMENTO' and dc.status <> 'CONCLUIDO'
+    )::int,
+    count(*) filter (where dc.status = 'EM_DISCIPULADO')::int,
+    count(*) filter (where dc.status = 'PAUSADO')::int,
+    count(*) filter (where dc.status = 'CONCLUIDO')::int,
+    count(*) filter (
+      where dc.status = 'CONCLUIDO'
+      and pd.department_id is null
+    )::int,
+    count(*) filter (
+      where dc.status = 'CONCLUIDO'
+      and pd.department_id is not null
+      and pd.department_contacted_at is null
+    )::int,
+    count(*) filter (
+      where dc.status = 'CONCLUIDO' and pd.department_contacted_at is not null
+    )::int,
+    count(*) filter (
+      where dc.status = 'CONCLUIDO' and pd.baptism_status = 'BATIZADO'
+    )::int
+  from discipleship_cases dc
+  left join post_discipleship pd on pd.case_id = dc.id
+  where dc.congregation_id = auth_congregation_id();
+$$;

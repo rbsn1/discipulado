@@ -6,14 +6,22 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { Input } from '@/components/ui/input'
 import { Dialog } from '@/components/ui/dialog'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { formatDate, cn } from '@/lib/utils'
 import { startPostDiscipleship, updatePostDiscipleship, confirmDepartmentContact } from '@/lib/actions/post-discipleship'
-import { Edit2, CheckCircle2, Clock, AlertCircle, Phone } from 'lucide-react'
-import type { Profile, IntegrationStatus, BaptismStatus } from '@/types'
+import { Edit2, CheckCircle2, Clock, AlertCircle, Phone, Search } from 'lucide-react'
+import type { Profile, IntegrationStatus, BaptismStatus, Department } from '@/types'
+import { isAfter, isBefore, parseISO, startOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns'
+
+type Period = '' | 'semana' | 'mes' | 'ano'
+
+const PERIOD_OPTIONS: { value: Period; label: string }[] = [
+  { value: 'semana', label: 'Semana' },
+  { value: 'mes', label: 'Mês' },
+  { value: 'ano', label: 'Ano' },
+]
 
 const BAPTISM_OPTIONS = [
   { value: 'NAO_BATIZADO', label: 'Não Batizado' },
@@ -24,7 +32,8 @@ const BAPTISM_OPTIONS = [
 interface PostDiscipleshipData {
   integration_status: IntegrationStatus
   baptism_status: BaptismStatus
-  department_name: string | null
+  department_id: string | null
+  departments: { id: string; name: string } | null
   notes: string | null
   department_contacted_at: string | null
   department_contacted_by: string | null
@@ -41,6 +50,7 @@ interface CaseData {
 
 interface Props {
   cases: CaseData[]
+  departments: Department[]
   currentProfile: Profile
 }
 
@@ -48,7 +58,7 @@ type Bucket = 'sem_departamento' | 'aguardando_confirmacao' | 'confirmado'
 
 function getBucket(c: CaseData): Bucket {
   const pd = c.post_discipleship
-  if (!pd || !pd.department_name) return 'sem_departamento'
+  if (!pd || !pd.department_id) return 'sem_departamento'
   if (!pd.department_contacted_at) return 'aguardando_confirmacao'
   return 'confirmado'
 }
@@ -73,7 +83,7 @@ function BucketHeader({
   )
 }
 
-export function PosDiscipuladoClient({ cases, currentProfile }: Props) {
+export function PosDiscipuladoClient({ cases, departments, currentProfile }: Props) {
   const router = useRouter()
   const [editCase, setEditCase] = useState<CaseData | null>(null)
   const [baptism, setBaptism] = useState<BaptismStatus>('NAO_BATIZADO')
@@ -82,6 +92,8 @@ export function PosDiscipuladoClient({ cases, currentProfile }: Props) {
   const [loading, setLoading] = useState(false)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [confirmSearch, setConfirmSearch] = useState('')
+  const [confirmPeriod, setConfirmPeriod] = useState<Period>('')
 
   const canEdit = ['ADMIN_DISCIPULADO', 'DISCIPULADOR', 'SECRETARIA_DISCIPULADO', 'SM_DISCIPULADO', 'ADMIN_PLATAFORMA'].includes(currentProfile.role)
 
@@ -89,10 +101,40 @@ export function PosDiscipuladoClient({ cases, currentProfile }: Props) {
   const aguardandoConfirm  = cases.filter(c => getBucket(c) === 'aguardando_confirmacao')
   const confirmados        = cases.filter(c => getBucket(c) === 'confirmado')
 
+  // ── "Confirmados" some da tela por padrão (já foi resolvido) — busca por
+  // nome/departamento ou filtro de período (baseado na data de confirmação)
+  // trazem de volta, mesmo padrão já usado em Boas-vindas e Aulas.
+  const today = startOfDay(new Date())
+  const confirmPeriodStart =
+    confirmPeriod === 'semana' ? startOfWeek(today, { weekStartsOn: 1 }) :
+    confirmPeriod === 'mes'    ? startOfMonth(today) :
+    confirmPeriod === 'ano'    ? startOfYear(today) :
+    null
+  const confirmPeriodEnd =
+    confirmPeriod === 'semana' ? endOfWeek(today, { weekStartsOn: 1 }) :
+    confirmPeriod === 'mes'    ? endOfMonth(today) :
+    confirmPeriod === 'ano'    ? endOfYear(today) :
+    null
+
+  const isFilteringConfirmados = confirmSearch.trim().length > 0 || confirmPeriod !== ''
+  const visibleConfirmados = isFilteringConfirmados
+    ? confirmados.filter(c => {
+        const s = confirmSearch.trim().toLowerCase()
+        const matchesSearch = !s ||
+          c.disciples?.full_name?.toLowerCase().includes(s) ||
+          (c.post_discipleship?.departments?.name ?? '').toLowerCase().includes(s)
+        const contactedAt = c.post_discipleship?.department_contacted_at
+        const contactDate = contactedAt ? parseISO(contactedAt) : null
+        const matchesPeriod = !confirmPeriodStart || !confirmPeriodEnd ||
+          (!!contactDate && !isBefore(contactDate, confirmPeriodStart) && !isAfter(contactDate, confirmPeriodEnd))
+        return matchesSearch && matchesPeriod
+      })
+    : []
+
   function openEdit(c: CaseData) {
     setEditCase(c)
     setBaptism(c.post_discipleship?.baptism_status ?? 'NAO_BATIZADO')
-    setDepartment(c.post_discipleship?.department_name ?? '')
+    setDepartment(c.post_discipleship?.department_id ?? '')
     setPosNotes(c.post_discipleship?.notes ?? '')
     setError('')
   }
@@ -136,9 +178,9 @@ export function PosDiscipuladoClient({ cases, currentProfile }: Props) {
           </div>
         </div>
 
-        {pd?.department_name && (
+        {pd?.departments?.name && (
           <span className="text-xs text-gray-600 bg-gray-100 rounded-full px-2.5 py-1 shrink-0">
-            {pd.department_name}
+            {pd.departments.name}
           </span>
         )}
 
@@ -231,9 +273,44 @@ export function PosDiscipuladoClient({ cases, currentProfile }: Props) {
               count={confirmados.length}
               color="bg-green-50 text-green-700"
             />
+            {confirmados.length > 0 && (
+              <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <div className="relative max-w-xs w-full">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={confirmSearch}
+                    onChange={e => setConfirmSearch(e.target.value)}
+                    placeholder="Buscar por nome ou departamento..."
+                    className="h-9 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-base sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {PERIOD_OPTIONS.map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setConfirmPeriod(p => p === opt.value ? '' : opt.value)}
+                      className={cn(
+                        'h-9 rounded-lg border px-3 text-sm font-medium transition-colors',
+                        confirmPeriod === opt.value
+                          ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                          : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {confirmados.length === 0
               ? <p className="text-xs text-gray-400 pl-1">Nenhum</p>
-              : <div className="flex flex-col gap-2">{confirmados.map(c => renderRow(c))}</div>
+              : isFilteringConfirmados
+                ? (visibleConfirmados.length === 0
+                    ? <p className="text-xs text-gray-400 pl-1">Nenhum encontrado</p>
+                    : <div className="flex flex-col gap-2">{visibleConfirmados.map(c => renderRow(c))}</div>)
+                : <p className="text-xs text-gray-400 pl-1">Busque por nome/departamento ou filtre por período pra ver quem já foi confirmado.</p>
             }
           </section>
         </div>
@@ -246,11 +323,12 @@ export function PosDiscipuladoClient({ cases, currentProfile }: Props) {
             {error && <Alert type="error">{error}</Alert>}
             <p className="font-medium text-gray-900">{editCase.disciples?.full_name}</p>
 
-            <Input
+            <Select
               label="Departamento"
               value={department}
               onChange={e => setDepartment(e.target.value)}
-              placeholder="Ex: Células, Louvor, EBD, Jovens..."
+              placeholder="Nenhum"
+              options={departments.map(d => ({ value: d.id, label: d.name }))}
             />
             <Select
               label="Status de Batismo"

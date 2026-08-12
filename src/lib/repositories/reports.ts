@@ -109,7 +109,7 @@ export async function getReportCases(congregationId: string): Promise<ReportCase
       id, status, stage, updated_at,
       disciples ( full_name, phone ),
       profiles!assigned_to ( name ),
-      post_discipleship ( department_name, department_contacted_at, baptism_status, updated_at )
+      post_discipleship ( department_contacted_at, baptism_status, updated_at, departments ( name ) )
     `)
     .eq('congregation_id', congregationId)
     .eq('status', 'CONCLUIDO')
@@ -123,7 +123,7 @@ export async function getReportCases(congregationId: string): Promise<ReportCase
     status:                 c.status,
     stage:                  c.stage,
     concluded_at:           c.post_discipleship?.updated_at ?? null,
-    department_name:        c.post_discipleship?.department_name ?? null,
+    department_name:        c.post_discipleship?.departments?.name ?? null,
     department_contacted_at: c.post_discipleship?.department_contacted_at ?? null,
     baptism_status:         c.post_discipleship?.baptism_status ?? null,
     updated_at:             c.updated_at,

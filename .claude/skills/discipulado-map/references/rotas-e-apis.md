@@ -28,7 +28,8 @@ Root: `src/app`. Route groups: `(auth)` (pública) e `(dashboard)` (autenticada)
 | `/admin/usuarios` | `admin/usuarios/page.tsx` + `client.tsx` | gestão de usuários/profiles (papéis, ativação) |
 | `/admin/modulos` | `admin/modulos/page.tsx` + `client.tsx` | CRUD de templates de módulo de discipulado |
 | `/admin/cultos` | `admin/cultos/page.tsx` + `client.tsx` | CRUD do catálogo de cultos |
-| `/admin/turnos` | `admin/turnos/page.tsx` + `client.tsx` | CRUD do catálogo de turnos (feature mais recente) — usado em `/turmas` e em `/confraternizacao/[id]` |
+| `/admin/turnos` | `admin/turnos/page.tsx` + `client.tsx` | CRUD do catálogo de turnos — usado em `/turmas` e em `/confraternizacao/[id]` |
+| `/admin/departamentos` | `admin/departamentos/page.tsx` + `client.tsx` | CRUD do catálogo de departamentos (feature mais recente) — usado em `/pos-discipulado` |
 
 Nenhuma dessas sub-rotas de `/admin` aparece no nav principal do sidebar — só são alcançadas via `/admin`.
 
@@ -41,6 +42,7 @@ REST-style, chamadas via `fetch` no client em vez de Server Actions. Padrão com
 - `cases/route.ts`, `[id]/assign|conclude|contacts|modules|pause|resume/route.ts` — ciclo de vida do case de discipulado
 - `class-shifts/route.ts` (GET/POST, papel `ADMIN_DISCIPULADO`/`ADMIN_PLATAFORMA`), `[id]/route.ts` (PATCH)
 - `classes/route.ts`, `[id]/route.ts`, `[id]/lessons/route.ts`, `enroll/route.ts` — `shift_id` referencia `class_shifts`
+- `departments/route.ts` (GET/POST, papel `ADMIN_DISCIPULADO`/`ADMIN_PLATAFORMA`), `[id]/route.ts` (PATCH) — usado por `post_discipleship.department_id`
 - `disciples/route.ts`, `[id]/route.ts`
 - `events/route.ts`, `[id]/route.ts`, `[id]/status/route.ts`, `[id]/confirmations/route.ts` — `class_shift_id` referencia `class_shifts`
 - `lessons/[id]/attendance/route.ts`

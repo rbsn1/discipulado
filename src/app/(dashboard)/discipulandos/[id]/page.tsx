@@ -26,13 +26,19 @@ export default async function DiscipleDetailPage({
   }
 
   const activeCase = disciple.discipleship_cases?.[0] ?? null
-  const [timeline, discipuladores, classes, confraternizacaoInfo, worshipServices] = await Promise.all([
+  const [timeline, profiles, classes, confraternizacaoInfo, worshipServices] = await Promise.all([
     activeCase ? getCaseTimeline(activeCase.id) : Promise.resolve([]),
     getProfilesByCongregation(profile.congregation_id),
     getClasses(profile.congregation_id, { activeOnly: true }),
     activeCase ? getCaseConfraternizacaoInfo(activeCase.id) : Promise.resolve({ hasAttended: false, preferredShift: null }),
     getWorshipServices(profile.congregation_id, { activeOnly: true }),
   ])
+
+  // Só quem pode assumir um discipulando e ainda está ativo — evita listar
+  // um voluntário desativado como opção de responsável ao iniciar acolhimento.
+  const discipuladores = profiles.filter(
+    p => ['DISCIPULADOR', 'ADMIN_DISCIPULADO', 'SM_DISCIPULADO'].includes(p.role) && p.is_active
+  )
 
   return (
     <div className="p-6 max-w-5xl mx-auto">

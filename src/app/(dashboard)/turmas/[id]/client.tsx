@@ -18,7 +18,7 @@ interface Enrollment {
   id: string
   disciple_id: string
   active: boolean
-  disciples: { id: string; full_name: string; phone?: string }
+  disciples: { id: string; full_name: string; phone?: string; discipleship_cases?: { status: string }[] }
 }
 
 interface Lesson {
@@ -79,7 +79,12 @@ export function TurmaDetailClient({ turma, modules, currentProfile }: Props) {
   const [lessonPeriod, setLessonPeriod] = useState<Period>('')
 
   const canManage = ['ADMIN_DISCIPULADO', 'DISCIPULADOR', 'ADMIN_PLATAFORMA'].includes(currentProfile.role)
-  const activeEnrollments = turma.class_enrollments.filter(e => e.active)
+  // Quem já concluiu o discipulado não conta mais como matriculado — a
+  // matrícula em si não é desfeita (class_enrollments.active continua true),
+  // só sai da fila de alunos ativos da turma.
+  const activeEnrollments = turma.class_enrollments.filter(e =>
+    e.active && e.disciples?.discipleship_cases?.[0]?.status !== 'CONCLUIDO'
+  )
 
   // ── Filtrar aulas por busca (tema) e/ou período / esconder concluídas por padrão ──
   // Aula "concluída" (data já passou E chamada já foi feita) some da lista assim que

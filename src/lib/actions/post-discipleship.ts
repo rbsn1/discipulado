@@ -22,7 +22,7 @@ export async function updatePostDiscipleship(
   caseId: string,
   integrationStatus: IntegrationStatus,
   baptismStatus: BaptismStatus,
-  departmentName: string | undefined,
+  departmentId: string | undefined,
   notes: string | undefined
 ) {
   const supabase = await createClient()
@@ -35,7 +35,7 @@ export async function updatePostDiscipleship(
       case_id: caseId,
       integration_status: integrationStatus,
       baptism_status: baptismStatus,
-      department_name: departmentName || null,
+      department_id: departmentId || null,
       notes: notes || null,
       updated_by: profile.id,
     }, { onConflict: 'case_id' })
@@ -89,7 +89,7 @@ export async function getPostDiscipleshipCases(congregationId: string) {
       *,
       disciples ( id, full_name, phone ),
       profiles!assigned_to ( id, name ),
-      post_discipleship (*)
+      post_discipleship ( *, departments ( id, name ) )
     `)
     .eq('congregation_id', congregationId)
     .eq('status', 'CONCLUIDO')

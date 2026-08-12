@@ -16,6 +16,8 @@ export async function getClasses(congregationId: string, options?: { activeOnly?
   return data as Class[]
 }
 
+// discipleship_cases(status) só pra filtrar da lista de matriculados quem já
+// concluiu o discipulado (ver activeEnrollments em turmas/[id]/client.tsx).
 export async function getClassById(id: string) {
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -25,7 +27,7 @@ export async function getClassById(id: string) {
       class_shifts ( id, name ),
       class_enrollments (
         *,
-        disciples ( id, full_name, phone )
+        disciples ( id, full_name, phone, discipleship_cases ( status ) )
       )
     `)
     .eq('id', id)

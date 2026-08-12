@@ -209,6 +209,15 @@ export interface ClassShiftCatalog {
   updated_at: string
 }
 
+export interface Department {
+  id: string
+  congregation_id: string
+  name: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
 export interface PlatformSettings {
   id: number
   login_verse_text: string
@@ -325,13 +334,14 @@ export interface PostDiscipleship {
   case_id: string
   integration_status: IntegrationStatus
   baptism_status: BaptismStatus
-  department_name: string | null
+  department_id: string | null
   notes: string | null
   department_contacted_at: string | null
   department_contacted_by: string | null
   updated_by: string | null
   created_at: string
   updated_at: string
+  departments?: Pick<Department, 'id' | 'name'> | null
 }
 
 // ---------------------------------------------------------------

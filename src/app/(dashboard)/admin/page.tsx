@@ -1,7 +1,7 @@
 import { getCurrentProfile } from '@/lib/repositories/profiles'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Users, BookOpen, Building2, Church, Quote, Clock } from 'lucide-react'
+import { Users, BookOpen, Building2, Church, Quote, Clock, Landmark } from 'lucide-react'
 
 export default async function AdminPage() {
   const profile = await getCurrentProfile()
@@ -42,6 +42,13 @@ export default async function AdminPage() {
       icon: Clock,
       title: 'Turnos',
       description: 'Configurar catálogo de turnos usado nas turmas e na Confraternização',
+      adminOnly: false,
+    },
+    {
+      href: '/admin/departamentos',
+      icon: Landmark,
+      title: 'Departamentos',
+      description: 'Configurar catálogo de departamentos usado no direcionamento pós-discipulado',
       adminOnly: false,
     },
     {
