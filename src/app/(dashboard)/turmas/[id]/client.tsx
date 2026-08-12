@@ -10,15 +10,16 @@ import { Dialog } from '@/components/ui/dialog'
 import { Alert } from '@/components/ui/alert'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ATTENDANCE_LABEL, ATTENDANCE_COLOR, formatDate, cn } from '@/lib/utils'
-import { Plus, ChevronRight, CalendarDays, Users, CheckCircle, X, Minus, Search } from 'lucide-react'
+import { Plus, ChevronRight, CalendarDays, Users, CheckCircle, X, Minus, Search, UserMinus } from 'lucide-react'
 import type { Profile, ModuleTemplate, AttendanceStatus } from '@/types'
 import { isAfter, isBefore, parseISO, startOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns'
+import { getAttendanceCriticality } from '@/lib/utils'
 
 interface Enrollment {
   id: string
   disciple_id: string
   active: boolean
-  disciples: { id: string; full_name: string; phone?: string; discipleship_cases?: { status: string }[] }
+  disciples: { id: string; full_name: string; phone?: string; discipleship_cases?: { id: string; status: string; attendance_rate: number; total_lessons: number }[] }
 }
 
 interface Lesson {
@@ -77,6 +78,7 @@ export function TurmaDetailClient({ turma, modules, currentProfile }: Props) {
   const [error, setError] = useState('')
   const [lessonSearch, setLessonSearch] = useState('')
   const [lessonPeriod, setLessonPeriod] = useState<Period>('')
+  const [unenrollingId, setUnenrollingId] = useState<string | null>(null)
 
   const canManage = ['ADMIN_DISCIPULADO', 'DISCIPULADOR', 'ADMIN_PLATAFORMA'].includes(currentProfile.role)
   // Quem já concluiu o discipulado não conta mais como matriculado — a
@@ -125,6 +127,22 @@ export function TurmaDetailClient({ turma, modules, currentProfile }: Props) {
   async function handleTabChange(tab: 'alunos' | 'aulas') {
     setActiveTab(tab)
     if (tab === 'aulas') await loadLessons()
+  }
+
+  async function handleUnenroll(e: Enrollment) {
+    const caseId = e.disciples?.discipleship_cases?.[0]?.id
+    if (!caseId) return
+    if (!confirm(`Desmatricular ${e.disciples.full_name} desta turma?`)) return
+    setUnenrollingId(e.id)
+    setError('')
+    const res = await fetch('/api/classes/enroll', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ disciple_id: e.disciple_id, case_id: caseId }),
+    })
+    if (!res.ok) setError((await res.json()).error ?? 'Erro ao desmatricular')
+    else router.refresh()
+    setUnenrollingId(null)
   }
 
   async function handleCreateLesson() {
@@ -238,18 +256,47 @@ export function TurmaDetailClient({ turma, modules, currentProfile }: Props) {
               <p className="px-6 py-8 text-center text-gray-500">Nenhum aluno matriculado</p>
             ) : (
               <ul className="divide-y divide-gray-100">
-                {activeEnrollments.map(e => (
-                  <li key={e.id} className="flex items-center justify-between px-6 py-3">
-                    <div>
-                      <Link href={`/discipulandos/${e.disciple_id}`} className="text-sm font-medium text-blue-600 hover:underline">
-                        {e.disciples.full_name}
-                      </Link>
-                      {e.disciples.phone && (
-                        <p className="text-xs text-gray-500">{e.disciples.phone}</p>
-                      )}
-                    </div>
-                  </li>
-                ))}
+                {activeEnrollments.map(e => {
+                  const activeCase = e.disciples?.discipleship_cases?.[0]
+                  const hasAttendance = (activeCase?.total_lessons ?? 0) > 0
+                  const crit = hasAttendance ? getAttendanceCriticality(activeCase!.attendance_rate) : null
+                  return (
+                    <li key={e.id} className="flex items-center justify-between gap-3 px-6 py-3">
+                      <div className="min-w-0">
+                        <Link href={`/discipulandos/${e.disciple_id}`} className="text-sm font-medium text-blue-600 hover:underline">
+                          {e.disciples.full_name}
+                        </Link>
+                        {e.disciples.phone && (
+                          <p className="text-xs text-gray-500">{e.disciples.phone}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        {crit && (
+                          <span
+                            className={cn(
+                              'text-xs font-medium tabular-nums',
+                              crit === 'ok' ? 'text-green-600' : crit === 'warning' ? 'text-yellow-600' : 'text-red-600'
+                            )}
+                            title="Frequência"
+                          >
+                            {Math.round(activeCase!.attendance_rate)}%
+                          </span>
+                        )}
+                        {canManage && (
+                          <button
+                            onClick={() => handleUnenroll(e)}
+                            disabled={unenrollingId === e.id}
+                            className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50"
+                            title="Desmatricular"
+                            aria-label="Desmatricular"
+                          >
+                            <UserMinus className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  )
+                })}
               </ul>
             )}
           </CardContent>

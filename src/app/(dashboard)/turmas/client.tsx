@@ -9,8 +9,10 @@ import { Select } from '@/components/ui/select'
 import { Dialog } from '@/components/ui/dialog'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { Plus, BookOpen, Pencil } from 'lucide-react'
+import { Plus, BookOpen, Pencil, Search } from 'lucide-react'
 import type { Class, ClassShiftCatalog, UserRole } from '@/types'
+import { isAfter, isBefore, parseISO, startOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns'
+import { cn } from '@/lib/utils'
 
 interface Props {
   classes: Class[]
@@ -18,6 +20,14 @@ interface Props {
   congregationId: string
   currentRole: UserRole
 }
+
+type Period = '' | 'semana' | 'mes' | 'ano'
+
+const PERIOD_OPTIONS: { value: Period; label: string }[] = [
+  { value: 'semana', label: 'Semana' },
+  { value: 'mes', label: 'Mês' },
+  { value: 'ano', label: 'Ano' },
+]
 
 export function TurmasClient({ classes, shifts, currentRole }: Props) {
   const router = useRouter()
@@ -27,8 +37,35 @@ export function TurmasClient({ classes, shifts, currentRole }: Props) {
   const [error, setError] = useState('')
   const [name, setName] = useState('')
   const [shiftId, setShiftId] = useState('')
+  const [search, setSearch] = useState('')
+  const [period, setPeriod] = useState<Period>('')
 
   const canManage = ['ADMIN_DISCIPULADO', 'DISCIPULADOR', 'ADMIN_PLATAFORMA'].includes(currentRole)
+
+  // ── Turma inativa some da tela por padrão — busca por nome ou filtro de
+  // período (baseado em quando a turma foi criada/alterada) trazem de volta,
+  // mesmo padrão já usado em Boas-vindas, Aulas e Pós-discipulado.
+  const today = startOfDay(new Date())
+  const periodStart =
+    period === 'semana' ? startOfWeek(today, { weekStartsOn: 1 }) :
+    period === 'mes'    ? startOfMonth(today) :
+    period === 'ano'    ? startOfYear(today) :
+    null
+  const periodEnd =
+    period === 'semana' ? endOfWeek(today, { weekStartsOn: 1 }) :
+    period === 'mes'    ? endOfMonth(today) :
+    period === 'ano'    ? endOfYear(today) :
+    null
+
+  const isFiltering = search.trim().length > 0 || period !== ''
+  const visibleClasses = isFiltering
+    ? classes.filter(c => {
+        const matchesSearch = !search.trim() || c.name.toLowerCase().includes(search.trim().toLowerCase())
+        const updatedAt = parseISO(c.updated_at)
+        const matchesPeriod = !periodStart || !periodEnd || (!isBefore(updatedAt, periodStart) && !isAfter(updatedAt, periodEnd))
+        return matchesSearch && matchesPeriod
+      })
+    : classes.filter(c => c.is_active)
 
   const shiftOptions = [
     { value: '', label: 'Não informado' },
@@ -88,15 +125,52 @@ export function TurmasClient({ classes, shifts, currentRole }: Props) {
         )}
       </div>
 
+      <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative max-w-xs w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Buscar turma por nome..."
+            className="h-9 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-base sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+          />
+        </div>
+        <div className="flex items-center gap-1.5">
+          {PERIOD_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setPeriod(p => p === opt.value ? '' : opt.value)}
+              className={cn(
+                'h-9 rounded-lg border px-3 text-sm font-medium transition-colors',
+                period === opt.value
+                  ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                  : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {error && <Alert type="error" className="mb-4">{error}</Alert>}
 
+      {classes.length === 0 && (
+        <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center text-gray-500">
+          Nenhuma turma cadastrada
+        </div>
+      )}
+
+      {classes.length > 0 && visibleClasses.length === 0 && (
+        <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center text-gray-500">
+          {isFiltering ? 'Nenhuma turma encontrada' : 'Nenhuma turma ativa. Busque pelo nome ou filtre por período pra ver as inativas.'}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {classes.length === 0 && (
-          <div className="col-span-full rounded-lg border border-dashed border-gray-300 py-12 text-center text-gray-500">
-            Nenhuma turma cadastrada
-          </div>
-        )}
-        {classes.map(c => (
+        {visibleClasses.map(c => (
           <div key={c.id} className="relative group">
             <Link
               href={`/turmas/${c.id}`}

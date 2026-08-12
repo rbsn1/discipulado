@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentProfile } from '@/lib/repositories/profiles'
-import { updateClass } from '@/lib/repositories/classes'
+import { updateClass, classNameExists } from '@/lib/repositories/classes'
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const profile = await getCurrentProfile()
@@ -11,6 +11,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const { id } = await params
   const body = await req.json()
+
+  if (body.name && await classNameExists(profile.congregation_id, body.name, id)) {
+    return NextResponse.json({ error: 'Já existe uma turma com esse nome' }, { status: 409 })
+  }
 
   try {
     const updated = await updateClass(id, {

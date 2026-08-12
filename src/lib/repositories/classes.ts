@@ -16,8 +16,10 @@ export async function getClasses(congregationId: string, options?: { activeOnly?
   return data as Class[]
 }
 
-// discipleship_cases(status) só pra filtrar da lista de matriculados quem já
-// concluiu o discipulado (ver activeEnrollments em turmas/[id]/client.tsx).
+// discipleship_cases(id, status, attendance_rate): id pra permitir desmatricular
+// (unenroll_disciple exige case_id), status pra filtrar da lista quem já concluiu
+// o discipulado, attendance_rate pra mostrar frequência na lista de matriculados
+// (ver activeEnrollments em turmas/[id]/client.tsx).
 export async function getClassById(id: string) {
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -27,7 +29,7 @@ export async function getClassById(id: string) {
       class_shifts ( id, name ),
       class_enrollments (
         *,
-        disciples ( id, full_name, phone, discipleship_cases ( status ) )
+        disciples ( id, full_name, phone, discipleship_cases ( id, status, attendance_rate, total_lessons ) )
       )
     `)
     .eq('id', id)
@@ -35,6 +37,27 @@ export async function getClassById(id: string) {
 
   if (error) throw error
   return data
+}
+
+// Comparação case-insensitive — evita "Turma Manhã" e "turma manhã" coexistindo
+// e confundindo quem for matricular alguém depois.
+export async function classNameExists(
+  congregationId: string,
+  name: string,
+  excludeId?: string
+): Promise<boolean> {
+  const supabase = await createClient()
+  let query = supabase
+    .from('classes')
+    .select('id', { count: 'exact', head: true })
+    .eq('congregation_id', congregationId)
+    .ilike('name', name.trim())
+
+  if (excludeId) query = query.neq('id', excludeId)
+
+  const { count, error } = await query
+  if (error) throw error
+  return (count ?? 0) > 0
 }
 
 export async function createClass(
