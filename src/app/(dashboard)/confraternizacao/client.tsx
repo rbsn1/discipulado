@@ -22,7 +22,7 @@ import {
 } from 'lucide-react'
 import type { Profile } from '@/types'
 import type { EventWithCounts } from '@/lib/repositories/events'
-import { isAfter, isBefore, parseISO, startOfDay, startOfWeek, startOfMonth, startOfYear } from 'date-fns'
+import { isAfter, isBefore, parseISO, startOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns'
 
 // ─── Helpers de status ──────────────────────────────────────────────────────
 
@@ -78,7 +78,9 @@ export function ConfraternizacaoClient({ events, congregationId, currentProfile 
 
   // ── Filtrar por busca (título) e/ou período / esconder realizados por padrão ──
   // Evento "Realizado" some da tela assim que concluído — continua acessível
-  // buscando pelo título ou limitando por semana/mês/ano.
+  // buscando pelo título ou limitando por semana/mês/ano. O filtro de período traz
+  // TODOS os eventos (qualquer status) dentro da semana/mês/ano corrente inteiros
+  // — não só até hoje, já que também deve trazer eventos futuros do período.
 
   const today = startOfDay(new Date())
   const periodStart =
@@ -86,13 +88,18 @@ export function ConfraternizacaoClient({ events, congregationId, currentProfile 
     period === 'mes'    ? startOfMonth(today) :
     period === 'ano'    ? startOfYear(today) :
     null
+  const periodEnd =
+    period === 'semana' ? endOfWeek(today, { weekStartsOn: 1 }) :
+    period === 'mes'    ? endOfMonth(today) :
+    period === 'ano'    ? endOfYear(today) :
+    null
 
   const isFiltering = search.trim().length > 0 || period !== ''
   const visibleEvents = isFiltering
     ? events.filter(ev => {
         const matchesSearch = !search.trim() || ev.title.toLowerCase().includes(search.trim().toLowerCase())
         const evDate = parseISO(ev.date)
-        const matchesPeriod = !periodStart || (!isBefore(evDate, periodStart) && !isAfter(evDate, today))
+        const matchesPeriod = !periodStart || !periodEnd || (!isBefore(evDate, periodStart) && !isAfter(evDate, periodEnd))
         return matchesSearch && matchesPeriod
       })
     : events.filter(ev => ev.status !== 'REALIZADO')
