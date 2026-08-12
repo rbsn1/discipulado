@@ -28,20 +28,21 @@ export async function POST(req: NextRequest) {
   if (!body.full_name?.trim()) {
     return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
   }
+  if (!body.assigned_to) {
+    return NextResponse.json({ error: 'Acolhedor responsável é obrigatório' }, { status: 400 })
+  }
 
   try {
     const disciple = await createDisciple(profile.congregation_id, body, profile.id)
-    if (body.assigned_to) {
-      await startCase(
-        {
-          disciple_id: disciple.id,
-          assigned_to: body.assigned_to,
-          welcomed_on: new Date().toISOString().slice(0, 10),
-        },
-        profile.congregation_id,
-        profile.id
-      )
-    }
+    await startCase(
+      {
+        disciple_id: disciple.id,
+        assigned_to: body.assigned_to,
+        welcomed_on: new Date().toISOString().slice(0, 10),
+      },
+      profile.congregation_id,
+      profile.id
+    )
     return NextResponse.json(disciple, { status: 201 })
   } catch (err: unknown) {
     const msg = (err as { message?: string })?.message ?? 'Erro interno'

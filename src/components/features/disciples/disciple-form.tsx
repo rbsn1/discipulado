@@ -89,7 +89,8 @@ export function DiscipleForm({ defaultValues, worshipServices, acolhedores, onSu
       {isCreate && (
         <Select
           name="assigned_to"
-          label="Acolhedor"
+          label="Acolhedor *"
+          required
           placeholder="Selecionar acolhedor"
           options={(acolhedores ?? []).map(a => ({ value: a.id, label: a.name }))}
         />
