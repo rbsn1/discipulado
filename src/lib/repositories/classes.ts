@@ -98,11 +98,13 @@ export async function unenrollDisciple(
   if (error) throw error
 }
 
+// attendance_items(id) só pra saber se a chamada já foi feita (length > 0) —
+// usado pra decidir se a aula já "concluiu" e pode sumir da lista por padrão.
 export async function getLessons(classId: string) {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('lessons')
-    .select('*, module_templates ( id, title )')
+    .select('*, module_templates ( id, title ), attendance_items ( id )')
     .eq('class_id', classId)
     .order('date', { ascending: false })
 

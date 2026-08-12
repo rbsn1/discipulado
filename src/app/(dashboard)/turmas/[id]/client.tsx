@@ -10,8 +10,9 @@ import { Dialog } from '@/components/ui/dialog'
 import { Alert } from '@/components/ui/alert'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ATTENDANCE_LABEL, ATTENDANCE_COLOR, formatDate, cn } from '@/lib/utils'
-import { Plus, ChevronRight, CalendarDays, Users, CheckCircle, X, Minus } from 'lucide-react'
+import { Plus, ChevronRight, CalendarDays, Users, CheckCircle, X, Minus, Search } from 'lucide-react'
 import type { Profile, ModuleTemplate, AttendanceStatus } from '@/types'
+import { isAfter, isBefore, parseISO, startOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns'
 
 interface Enrollment {
   id: string
@@ -25,7 +26,16 @@ interface Lesson {
   date: string
   topic: string | null
   module_templates?: { id: string; title: string } | null
+  attendance_items?: { id: string }[]
 }
+
+type Period = '' | 'semana' | 'mes' | 'ano'
+
+const PERIOD_OPTIONS: { value: Period; label: string }[] = [
+  { value: 'semana', label: 'Semana' },
+  { value: 'mes', label: 'Mês' },
+  { value: 'ano', label: 'Ano' },
+]
 
 interface Props {
   turma: {
@@ -65,9 +75,38 @@ export function TurmaDetailClient({ turma, modules, currentProfile }: Props) {
   const [lessonModule, setLessonModule] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [lessonSearch, setLessonSearch] = useState('')
+  const [lessonPeriod, setLessonPeriod] = useState<Period>('')
 
   const canManage = ['ADMIN_DISCIPULADO', 'DISCIPULADOR', 'ADMIN_PLATAFORMA'].includes(currentProfile.role)
   const activeEnrollments = turma.class_enrollments.filter(e => e.active)
+
+  // ── Filtrar aulas por busca (tema) e/ou período / esconder concluídas por padrão ──
+  // Aula "concluída" (data já passou E chamada já foi feita) some da lista assim que
+  // processada — continua acessível buscando pelo tema ou limitando por semana/mês/ano,
+  // que trazem TODAS as aulas (concluídas ou não) dentro do período.
+
+  const today = startOfDay(new Date())
+  const lessonPeriodStart =
+    lessonPeriod === 'semana' ? startOfWeek(today, { weekStartsOn: 1 }) :
+    lessonPeriod === 'mes'    ? startOfMonth(today) :
+    lessonPeriod === 'ano'    ? startOfYear(today) :
+    null
+  const lessonPeriodEnd =
+    lessonPeriod === 'semana' ? endOfWeek(today, { weekStartsOn: 1 }) :
+    lessonPeriod === 'mes'    ? endOfMonth(today) :
+    lessonPeriod === 'ano'    ? endOfYear(today) :
+    null
+
+  const isFilteringLessons = lessonSearch.trim().length > 0 || lessonPeriod !== ''
+  const visibleLessons = isFilteringLessons
+    ? lessons.filter(l => {
+        const matchesSearch = !lessonSearch.trim() || (l.topic ?? '').toLowerCase().includes(lessonSearch.trim().toLowerCase())
+        const lDate = parseISO(l.date)
+        const matchesPeriod = !lessonPeriodStart || !lessonPeriodEnd || (!isBefore(lDate, lessonPeriodStart) && !isAfter(lDate, lessonPeriodEnd))
+        return matchesSearch && matchesPeriod
+      })
+    : lessons.filter(l => !((l.attendance_items?.length ?? 0) > 0 && isBefore(parseISO(l.date), today)))
 
   async function loadLessons() {
     if (lessonLoaded) return
@@ -214,12 +253,48 @@ export function TurmaDetailClient({ turma, modules, currentProfile }: Props) {
 
       {activeTab === 'aulas' && (
         <>
-          {canManage && (
-            <div className="mb-4">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            {canManage ? (
               <Button onClick={() => setShowNewLesson(true)}>
                 <Plus className="h-4 w-4" />
                 Nova aula
               </Button>
+            ) : <div />}
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="relative max-w-xs w-full">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={lessonSearch}
+                  onChange={e => setLessonSearch(e.target.value)}
+                  placeholder="Buscar aula por tema..."
+                  className="h-9 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-base sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                {PERIOD_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setLessonPeriod(p => p === opt.value ? '' : opt.value)}
+                    className={cn(
+                      'h-9 rounded-lg border px-3 text-sm font-medium transition-colors',
+                      lessonPeriod === opt.value
+                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                        : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {lessons.length > 0 && visibleLessons.length === 0 && (
+            <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center text-gray-500">
+              {isFilteringLessons ? 'Nenhuma aula encontrada' : 'Nenhuma aula em aberto. Busque pelo tema ou filtre por período pra ver as já concluídas.'}
             </div>
           )}
 
@@ -227,9 +302,9 @@ export function TurmaDetailClient({ turma, modules, currentProfile }: Props) {
             <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center text-gray-500">
               Nenhuma aula cadastrada
             </div>
-          ) : (
+          ) : visibleLessons.length === 0 ? null : (
             <div className="flex flex-col gap-3">
-              {lessons.map(l => (
+              {visibleLessons.map(l => (
                 <div key={l.id} className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3">
                   <div>
                     <p className="font-medium text-gray-900">{formatDate(l.date)}</p>
