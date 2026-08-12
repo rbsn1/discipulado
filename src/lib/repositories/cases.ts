@@ -161,6 +161,31 @@ export async function getContactAttempts(caseId: string): Promise<ContactAttempt
   return data as ContactAttempt[]
 }
 
+// Cases cujo contato mais recente teve resultado "Aceitou participar da FBV"
+// — usado pra restringir quem pode ser adicionado a um evento de Boas-vindas
+// (confraternização) a quem topou participar no último contato registrado.
+export async function getAcceptedFbvCaseIds(congregationId: string): Promise<string[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('contact_attempts')
+    .select('case_id, outcome, occurred_at, discipleship_cases!inner(congregation_id)')
+    .eq('discipleship_cases.congregation_id', congregationId)
+    .order('occurred_at', { ascending: false })
+
+  if (error) throw error
+
+  const latestByCase = new Map<string, ContactOutcome>()
+  for (const row of data ?? []) {
+    if (!latestByCase.has(row.case_id)) {
+      latestByCase.set(row.case_id, row.outcome as ContactOutcome)
+    }
+  }
+
+  return [...latestByCase.entries()]
+    .filter(([, outcome]) => outcome === 'ACEITOU_FBV')
+    .map(([caseId]) => caseId)
+}
+
 export async function addContactAttempt(
   caseId: string,
   outcome: ContactOutcome,

@@ -51,6 +51,8 @@ interface EventDetail {
 interface Props {
   event: EventDetail
   activeCases: CaseListItem[]
+  attendedCaseIds: string[]
+  acceptedFbvCaseIds: string[]
   currentProfile: Profile
 }
 
@@ -71,7 +73,7 @@ const STATUS_CONFIG: Record<EventStatus, { label: string; icon: React.ElementTyp
 
 // ─── Componente principal ────────────────────────────────────────────────────
 
-export function EventDetailClient({ event, activeCases, currentProfile }: Props) {
+export function EventDetailClient({ event, activeCases, attendedCaseIds, acceptedFbvCaseIds, currentProfile }: Props) {
   const router = useRouter()
 
   const [loading, setLoading] = useState<string | null>(null)
@@ -92,7 +94,12 @@ export function EventDetailClient({ event, activeCases, currentProfile }: Props)
   const canExport = ['ADMIN_DISCIPULADO', 'SECRETARIA_DISCIPULADO', 'SM_DISCIPULADO', 'ADMIN_PLATAFORMA'].includes(currentProfile.role)
   const canChangeStatus = ['ADMIN_DISCIPULADO', 'ADMIN_PLATAFORMA'].includes(currentProfile.role)
 
-  const confirmedCaseIds = new Set(event.event_confirmations.map(c => c.case_id))
+  const confirmedCaseIds = useMemo(
+    () => new Set(event.event_confirmations.map(c => c.case_id)),
+    [event.event_confirmations]
+  )
+  const attendedElsewhereIds = useMemo(() => new Set(attendedCaseIds), [attendedCaseIds])
+  const acceptedFbvIds = useMemo(() => new Set(acceptedFbvCaseIds), [acceptedFbvCaseIds])
 
   // ── Estatísticas de turno ──
 
@@ -111,15 +118,21 @@ export function EventDetailClient({ event, activeCases, currentProfile }: Props)
 
   // ── Participantes não adicionados (com busca) ──
 
+  const eligibleCases = useMemo(
+    () => activeCases.filter(c =>
+      acceptedFbvIds.has(c.id) && !confirmedCaseIds.has(c.id) && !attendedElsewhereIds.has(c.id)
+    ),
+    [activeCases, confirmedCaseIds, attendedElsewhereIds, acceptedFbvIds]
+  )
+
   const unconfirmedCases = useMemo(() => {
-    const base = activeCases.filter(c => !confirmedCaseIds.has(c.id))
-    if (!addSearch.trim()) return base
+    if (!addSearch.trim()) return eligibleCases
     const s = addSearch.toLowerCase()
-    return base.filter(c =>
+    return eligibleCases.filter(c =>
       c.disciples?.full_name?.toLowerCase().includes(s) ||
       (c.disciples as any)?.phone?.includes(s)
     )
-  }, [activeCases, confirmedCaseIds, addSearch])
+  }, [eligibleCases, addSearch])
 
   // ── Ações ──
 
@@ -364,7 +377,7 @@ export function EventDetailClient({ event, activeCases, currentProfile }: Props)
       </div>
 
       {/* ── Adicionar participantes ── */}
-      {canManage && activeCases.filter(c => !confirmedCaseIds.has(c.id)).length > 0 && (
+      {canManage && eligibleCases.length > 0 && (
         <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 flex items-center justify-between gap-3 flex-wrap">
             <p className="font-semibold text-gray-900 flex items-center gap-1.5">
@@ -385,7 +398,7 @@ export function EventDetailClient({ event, activeCases, currentProfile }: Props)
 
           {unconfirmedCases.length === 0 ? (
             <p className="px-4 py-6 text-center text-sm text-gray-500">
-              {addSearch ? 'Nenhum discipulando encontrado' : 'Todos os discipulandos ativos já foram adicionados'}
+              {addSearch ? 'Nenhum discipulando encontrado' : 'Todos os discipulandos que aceitaram participar da FBV já foram adicionados ou já participaram de uma confraternização'}
             </p>
           ) : (
             <div className="overflow-x-auto">

@@ -158,3 +158,19 @@ export async function getCaseConfraternizacaoInfo(caseId: string): Promise<{
     preferredShift: data?.[0]?.class_shift ?? null,
   }
 }
+
+// Cases que já tiveram presença registrada (attended=true) em algum evento
+// de confraternização da congregação — usado pra tirá-los da lista de
+// "adicionar participante" de outros eventos, já que uma presença já é
+// suficiente pra liberar a matrícula (ver getCaseConfraternizacaoInfo).
+export async function getAttendedCaseIds(congregationId: string): Promise<string[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('event_confirmations')
+    .select('case_id, events!inner(congregation_id)')
+    .eq('attended', true)
+    .eq('events.congregation_id', congregationId)
+
+  if (error) throw error
+  return [...new Set((data ?? []).map(r => r.case_id as string))]
+}

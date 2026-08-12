@@ -1,6 +1,6 @@
 import { getCurrentProfile } from '@/lib/repositories/profiles'
-import { getEventById } from '@/lib/repositories/events'
-import { getCases } from '@/lib/repositories/cases'
+import { getEventById, getAttendedCaseIds } from '@/lib/repositories/events'
+import { getCases, getAcceptedFbvCaseIds } from '@/lib/repositories/cases'
 import { redirect, notFound } from 'next/navigation'
 import { EventDetailClient } from './client'
 
@@ -13,11 +13,13 @@ export default async function EventDetailPage({
   if (!profile?.congregation_id) redirect('/painel')
 
   const { id } = await params
-  const [event, activeCases] = await Promise.all([
+  const [event, activeCases, attendedCaseIds, acceptedFbvCaseIds] = await Promise.all([
     getEventById(id).catch(() => null),
     getCases(profile.congregation_id, {
       status: ['PENDENTE_MATRICULA', 'EM_DISCIPULADO', 'PAUSADO'],
     }),
+    getAttendedCaseIds(profile.congregation_id),
+    getAcceptedFbvCaseIds(profile.congregation_id),
   ])
   if (!event) notFound()
 
@@ -26,6 +28,8 @@ export default async function EventDetailPage({
       <EventDetailClient
         event={event as any}
         activeCases={activeCases}
+        attendedCaseIds={attendedCaseIds}
+        acceptedFbvCaseIds={acceptedFbvCaseIds}
         currentProfile={profile}
       />
     </div>

@@ -18,6 +18,7 @@ import {
   Pencil,
   Users,
   UserCheck,
+  Search,
 } from 'lucide-react'
 import type { Profile } from '@/types'
 import type { EventWithCounts } from '@/lib/repositories/events'
@@ -62,16 +63,26 @@ export function ConfraternizacaoClient({ events, congregationId, currentProfile 
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [search, setSearch] = useState('')
 
   const canManage = ['ADMIN_DISCIPULADO', 'ADMIN_PLATAFORMA'].includes(currentProfile.role)
+
+  // ── Filtrar por busca / esconder realizados por padrão ──
+  // Evento "Realizado" some da tela assim que concluído — continua acessível
+  // buscando pelo título.
+
+  const isSearching = search.trim().length > 0
+  const visibleEvents = isSearching
+    ? events.filter(ev => ev.title.toLowerCase().includes(search.trim().toLowerCase()))
+    : events.filter(ev => ev.status !== 'REALIZADO')
 
   // ── Separar eventos futuros/passados ──
 
   const today = startOfDay(new Date())
-  const upcoming = events.filter(ev =>
+  const upcoming = visibleEvents.filter(ev =>
     ev.status !== 'CANCELADO' && isAfter(parseISO(ev.date), today) || ev.date === today.toISOString().slice(0, 10)
   )
-  const past = events.filter(ev =>
+  const past = visibleEvents.filter(ev =>
     !upcoming.includes(ev)
   )
 
@@ -122,7 +133,7 @@ export function ConfraternizacaoClient({ events, congregationId, currentProfile 
 
   return (
     <>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-gray-900">Confraternização</h1>
         {canManage && (
           <Button onClick={openCreate}>
@@ -132,11 +143,28 @@ export function ConfraternizacaoClient({ events, congregationId, currentProfile 
         )}
       </div>
 
+      <div className="relative mb-6 max-w-xs">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar evento por título..."
+          className="h-9 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-base sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+        />
+      </div>
+
       {error && <Alert type="error" className="mb-4">{error}</Alert>}
 
       {events.length === 0 && (
         <div className="rounded-xl border border-dashed border-gray-300 py-12 text-center text-gray-500">
           Nenhum evento cadastrado
+        </div>
+      )}
+
+      {events.length > 0 && visibleEvents.length === 0 && (
+        <div className="rounded-xl border border-dashed border-gray-300 py-12 text-center text-gray-500">
+          {isSearching ? 'Nenhum evento encontrado' : 'Nenhum evento em andamento. Busque pelo título pra ver os já realizados.'}
         </div>
       )}
 
