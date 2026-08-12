@@ -9,7 +9,7 @@ import { Select } from '@/components/ui/select'
 import { Dialog } from '@/components/ui/dialog'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { Plus, BookOpen, Pencil, Search } from 'lucide-react'
+import { Plus, BookOpen, Pencil, Search, Trash2 } from 'lucide-react'
 import type { Class, ClassShiftCatalog, UserRole } from '@/types'
 import { isAfter, isBefore, parseISO, startOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns'
 import { cn } from '@/lib/utils'
@@ -39,6 +39,7 @@ export function TurmasClient({ classes, shifts, currentRole }: Props) {
   const [shiftId, setShiftId] = useState('')
   const [search, setSearch] = useState('')
   const [period, setPeriod] = useState<Period>('')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const canManage = ['ADMIN_DISCIPULADO', 'DISCIPULADOR', 'ADMIN_PLATAFORMA'].includes(currentRole)
 
@@ -88,6 +89,22 @@ export function TurmasClient({ classes, shifts, currentRole }: Props) {
     setShiftId(c.shift_id ?? '')
     setError('')
     setShowForm(true)
+  }
+
+  async function handleDelete(c: Class, e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!confirm(`Apagar a turma "${c.name}"? Essa ação não pode ser desfeita.`)) return
+    setDeletingId(c.id)
+    setError('')
+    const res = await fetch(`/api/classes/${c.id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const d = await res.json()
+      setError(d.error)
+    } else {
+      router.refresh()
+    }
+    setDeletingId(null)
   }
 
   async function handleSave() {
@@ -190,13 +207,23 @@ export function TurmasClient({ classes, shifts, currentRole }: Props) {
               </div>
             </Link>
             {canManage && (
-              <button
-                onClick={(e) => openEdit(c, e)}
-                className="absolute right-3 top-3 rounded-lg p-1.5 text-gray-400 opacity-0 group-hover:opacity-100 hover:bg-gray-100 hover:text-gray-700 transition-all"
-                title="Editar turma"
-              >
-                <Pencil className="h-4 w-4" />
-              </button>
+              <div className="absolute right-3 top-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                <button
+                  onClick={(e) => openEdit(c, e)}
+                  className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                  title="Editar turma"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={(e) => handleDelete(c, e)}
+                  disabled={deletingId === c.id}
+                  className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                  title="Apagar turma"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             )}
           </div>
         ))}

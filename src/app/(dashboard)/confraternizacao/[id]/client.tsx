@@ -147,17 +147,36 @@ export function EventDetailClient({ event, activeCases, attendedCaseIds, accepte
   ) {
     setLoading(caseId + field)
     const existing = event.event_confirmations.find(c => c.case_id === caseId)
-    const body = {
-      case_id: caseId,
-      confirmed: field === 'confirmed' ? !currentValue : (existing?.confirmed ?? false),
-      attended:  field === 'attended'  ? !currentValue : (existing?.attended  ?? false),
-      class_shift_id: shiftId !== undefined ? shiftId : existing?.class_shift_id ?? null,
+    const nextConfirmed = field === 'confirmed' ? !currentValue : (existing?.confirmed ?? false)
+    const nextAttended  = field === 'attended'  ? !currentValue : (existing?.attended  ?? false)
+
+    // Desmarcar a presença (turno junto, via modal) é o "desfazer" completo
+    // dessa confirmação — some da lista inteira, não só do status "presente",
+    // mesmo que "confirmado" ainda estivesse marcado. Sem confirmação nem
+    // presença também não sobra motivo pra manter a linha. Em ambos os casos
+    // remove de vez, o que devolve a vida acolhida pra "Adicionar participante"
+    // e (via trigger no banco) reverte o case pra EM_ACOLHIMENTO se estava
+    // PENDENTE_MATRICULA.
+    const isUnattending = field === 'attended' && currentValue === true
+    let res: Response
+    if (isUnattending || (!nextConfirmed && !nextAttended)) {
+      res = await fetch(`/api/events/${event.id}/confirmations`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ case_id: caseId }),
+      })
+    } else {
+      res = await fetch(`/api/events/${event.id}/confirmations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          case_id: caseId,
+          confirmed: nextConfirmed,
+          attended: nextAttended,
+          class_shift_id: shiftId !== undefined ? shiftId : existing?.class_shift_id ?? null,
+        }),
+      })
     }
-    const res = await fetch(`/api/events/${event.id}/confirmations`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
     if (!res.ok) setError((await res.json()).error)
     else router.refresh()
     setLoading(null)

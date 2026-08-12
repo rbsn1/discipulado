@@ -18,7 +18,12 @@
       "Bash(grep -v \"^$\")",
       "Bash(sed -n '/^-- 021_em_acolhimento_logic.sql/,$p' /home/robsonsouza/Documents/discipulado/supabase/migrations/000_run_all.sql)",
       "Bash(cp /tmp/run_all_truncated.sql *)",
-      "Bash(timeout 5 bash -c \"echo > /dev/tcp/db.pxgwkkinguddibvhdlnn.supabase.co/5432\")"
+      "Bash(timeout 5 bash -c \"echo > /dev/tcp/db.pxgwkkinguddibvhdlnn.supabase.co/5432\")",
+      "Bash(echo \"typo check exit:$?\")",
+      "Bash(bash -lc 'command -v nvm; ls ~/.nvm/versions/node 2>/dev/null; ls /usr/local/n/versions/node 2>/dev/null; which -a node; echo $PATH')",
+      "Bash(mkdir -p /tmp/claude-1000/-home-robsonsouza-Documents-discipulado/365f98e7-0415-4e16-8ddb-e778e765036d/scratchpad/db)",
+      "Bash(npm init *)",
+      "Bash(npm install *)"
     ],
     "additionalDirectories": [
       "/tmp"

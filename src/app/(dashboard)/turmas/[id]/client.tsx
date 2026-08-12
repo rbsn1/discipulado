@@ -10,8 +10,8 @@ import { Dialog } from '@/components/ui/dialog'
 import { Alert } from '@/components/ui/alert'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ATTENDANCE_LABEL, ATTENDANCE_COLOR, formatDate, cn } from '@/lib/utils'
-import { Plus, ChevronRight, CalendarDays, Users, CheckCircle, X, Minus, Search, UserMinus } from 'lucide-react'
-import type { Profile, ModuleTemplate, AttendanceStatus } from '@/types'
+import { Plus, ChevronRight, CalendarDays, Users, CheckCircle, X, Minus, Search, UserMinus, UserPlus } from 'lucide-react'
+import type { Profile, ModuleTemplate, AttendanceStatus, CaseListItem } from '@/types'
 import { isAfter, isBefore, parseISO, startOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns'
 import { getAttendanceCriticality } from '@/lib/utils'
 
@@ -48,6 +48,7 @@ interface Props {
     class_enrollments: Enrollment[]
   }
   modules: ModuleTemplate[]
+  eligibleCases: CaseListItem[]
   currentProfile: Profile
 }
 
@@ -63,7 +64,7 @@ const ATTENDANCE_BTN: Record<AttendanceStatus, string> = {
   JUSTIFICADA: 'bg-yellow-100 text-yellow-800 border-yellow-300',
 }
 
-export function TurmaDetailClient({ turma, modules, currentProfile }: Props) {
+export function TurmaDetailClient({ turma, modules, eligibleCases, currentProfile }: Props) {
   const router = useRouter()
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [lessonLoaded, setLessonLoaded] = useState(false)
@@ -79,6 +80,8 @@ export function TurmaDetailClient({ turma, modules, currentProfile }: Props) {
   const [lessonSearch, setLessonSearch] = useState('')
   const [lessonPeriod, setLessonPeriod] = useState<Period>('')
   const [unenrollingId, setUnenrollingId] = useState<string | null>(null)
+  const [addSearch, setAddSearch] = useState('')
+  const [addingId, setAddingId] = useState<string | null>(null)
 
   const canManage = ['ADMIN_DISCIPULADO', 'DISCIPULADOR', 'ADMIN_PLATAFORMA'].includes(currentProfile.role)
   // Quem já concluiu o discipulado não conta mais como matriculado — a
@@ -87,6 +90,13 @@ export function TurmaDetailClient({ turma, modules, currentProfile }: Props) {
   const activeEnrollments = turma.class_enrollments.filter(e =>
     e.active && e.disciples?.discipleship_cases?.[0]?.status !== 'CONCLUIDO'
   )
+
+  const visibleEligible = !addSearch.trim()
+    ? eligibleCases
+    : eligibleCases.filter(c => {
+        const s = addSearch.trim().toLowerCase()
+        return c.disciples?.full_name?.toLowerCase().includes(s) || c.disciples?.phone?.includes(s)
+      })
 
   // ── Filtrar aulas por busca (tema) e/ou período / esconder concluídas por padrão ──
   // Aula "concluída" (data já passou E chamada já foi feita) some da lista assim que
@@ -143,6 +153,19 @@ export function TurmaDetailClient({ turma, modules, currentProfile }: Props) {
     if (!res.ok) setError((await res.json()).error ?? 'Erro ao desmatricular')
     else router.refresh()
     setUnenrollingId(null)
+  }
+
+  async function handleAddParticipant(c: CaseListItem) {
+    setAddingId(c.id)
+    setError('')
+    const res = await fetch('/api/classes/enroll', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ disciple_id: c.disciple_id, class_id: turma.id, case_id: c.id }),
+    })
+    if (!res.ok) setError((await res.json()).error ?? 'Erro ao matricular')
+    else router.refresh()
+    setAddingId(null)
   }
 
   async function handleCreateLesson() {
@@ -301,6 +324,54 @@ export function TurmaDetailClient({ turma, modules, currentProfile }: Props) {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {activeTab === 'alunos' && canManage && eligibleCases.length > 0 && (
+        <div className="mt-6 rounded-lg border border-gray-200 bg-white overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 flex items-center justify-between gap-3 flex-wrap">
+            <p className="font-semibold text-gray-900 flex items-center gap-1.5">
+              <UserPlus className="h-4 w-4 text-gray-500" />
+              Adicionar participante
+            </p>
+            <div className="relative max-w-xs w-full">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
+              <input
+                type="text"
+                value={addSearch}
+                onChange={e => setAddSearch(e.target.value)}
+                placeholder="Buscar por nome ou telefone..."
+                className="h-8 w-full rounded-lg border border-gray-200 bg-white pl-8 pr-3 text-base sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              />
+            </div>
+          </div>
+
+          {visibleEligible.length === 0 ? (
+            <p className="px-4 py-6 text-center text-sm text-gray-500">
+              {addSearch ? 'Nenhum discipulando encontrado' : 'Todos já foram adicionados'}
+            </p>
+          ) : (
+            <ul className="divide-y divide-gray-50">
+              {visibleEligible.map(c => (
+                <li key={c.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                  <div className="min-w-0">
+                    <p className="font-medium text-gray-900 text-sm">{c.disciples?.full_name}</p>
+                    {c.disciples?.phone && (
+                      <p className="text-xs text-gray-400">{c.disciples.phone}</p>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    loading={addingId === c.id}
+                    onClick={() => handleAddParticipant(c)}
+                  >
+                    + Confirmar
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
 
       {activeTab === 'aulas' && (

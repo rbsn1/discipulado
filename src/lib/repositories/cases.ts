@@ -186,6 +186,31 @@ export async function getAcceptedFbvCaseIds(congregationId: string): Promise<str
     .map(([caseId]) => caseId)
 }
 
+// Turno escolhido na Festa de Boas-vindas mais recente em que o case teve
+// presença confirmada — usado pra oferecer o discipulando só nas turmas do
+// mesmo turno (mesma lógica de "um evento por vez" já usada na FBV: uma vez
+// matriculado, some das opções de todas as outras turmas via getCases
+// filtrar por status PENDENTE_MATRICULA, que deixa de valer após matricular).
+export async function getPreferredShiftByCaseId(congregationId: string): Promise<Map<string, string | null>> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('event_confirmations')
+    .select('case_id, class_shift_id, created_at, discipleship_cases!inner(congregation_id)')
+    .eq('attended', true)
+    .eq('discipleship_cases.congregation_id', congregationId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+
+  const shiftByCase = new Map<string, string | null>()
+  for (const row of data ?? []) {
+    if (!shiftByCase.has(row.case_id)) {
+      shiftByCase.set(row.case_id, row.class_shift_id)
+    }
+  }
+  return shiftByCase
+}
+
 export async function addContactAttempt(
   caseId: string,
   outcome: ContactOutcome,

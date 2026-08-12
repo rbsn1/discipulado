@@ -130,6 +130,17 @@ export async function upsertConfirmation(
   if (error) throw error
 }
 
+export async function removeConfirmation(eventId: string, caseId: string): Promise<void> {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('event_confirmations')
+    .delete()
+    .eq('event_id', eventId)
+    .eq('case_id', caseId)
+
+  if (error) throw error
+}
+
 export async function getConfirmationsForEvent(eventId: string): Promise<EventConfirmation[]> {
   const supabase = await createClient()
   const { data, error } = await supabase

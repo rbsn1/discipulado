@@ -92,6 +92,30 @@ export async function updateClass(
   return data as Class
 }
 
+// Turma criada por engano: só apaga se nunca teve matrícula nenhuma (ativa ou
+// não — histórico de matrícula real bloqueia o apagar, não só a vaga atual).
+// Aulas sem matriculados (criadas por engano também) são apagadas junto —
+// presenças cascateiam via FK (attendance_items -> lessons on delete cascade).
+export async function deleteClass(id: string): Promise<void> {
+  const supabase = await createClient()
+
+  const { count, error: countError } = await supabase
+    .from('class_enrollments')
+    .select('id', { count: 'exact', head: true })
+    .eq('class_id', id)
+
+  if (countError) throw countError
+  if ((count ?? 0) > 0) {
+    throw new Error('CLASS_HAS_ENROLLMENTS: turma possui alunos matriculados e não pode ser apagada')
+  }
+
+  const { error: lessonsError } = await supabase.from('lessons').delete().eq('class_id', id)
+  if (lessonsError) throw lessonsError
+
+  const { error: classError } = await supabase.from('classes').delete().eq('id', id)
+  if (classError) throw classError
+}
+
 export async function enrollDisciple(
   discipleId: string,
   classId: string,

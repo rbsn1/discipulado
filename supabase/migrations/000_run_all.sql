@@ -2470,3 +2470,63 @@ as $$
   from discipleship_cases
   where congregation_id = auth_congregation_id();
 $$;
+
+-- =============================================================
+-- 022_em_acolhimento_revert.sql
+-- =============================================================
+
+create or replace function revert_case_after_fbv_confirmation_removed(p_case_id uuid, p_actor uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update discipleship_cases
+  set
+    status     = 'EM_ACOLHIMENTO',
+    updated_at = now()
+  where id = p_case_id
+    and status = 'PENDENTE_MATRICULA';
+
+  if found then
+    insert into case_events (case_id, type, description, created_by)
+    values (
+      p_case_id,
+      'ACOLHIMENTO',
+      'Confirmação de presença na Festa de Boas Vindas removida — matrícula bloqueada novamente',
+      p_actor
+    );
+  end if;
+end;
+$$;
+
+create or replace function trg_fn_confirmation_removed_or_unattended()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if TG_OP = 'DELETE' then
+    if old.attended is true then
+      perform revert_case_after_fbv_confirmation_removed(old.case_id, old.created_by);
+    end if;
+    return old;
+  end if;
+
+  if old.attended is true and new.attended is not true then
+    perform revert_case_after_fbv_confirmation_removed(new.case_id, new.created_by);
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_revert_case_after_fbv_removed on event_confirmations;
+
+create trigger trg_revert_case_after_fbv_removed
+  after update of attended or delete
+  on event_confirmations
+  for each row
+  execute function trg_fn_confirmation_removed_or_unattended();
