@@ -27,7 +27,8 @@ Root: `src/app`. Route groups: `(auth)` (pública) e `(dashboard)` (autenticada)
 | `/admin/congregacoes` | `admin/congregacoes/page.tsx` + `client.tsx` | CRUD congregação, tema, logo |
 | `/admin/usuarios` | `admin/usuarios/page.tsx` + `client.tsx` | gestão de usuários/profiles (papéis, ativação) |
 | `/admin/modulos` | `admin/modulos/page.tsx` + `client.tsx` | CRUD de templates de módulo de discipulado |
-| `/admin/cultos` | `admin/cultos/page.tsx` + `client.tsx` | CRUD do catálogo de cultos (feature mais recente) |
+| `/admin/cultos` | `admin/cultos/page.tsx` + `client.tsx` | CRUD do catálogo de cultos |
+| `/admin/turnos` | `admin/turnos/page.tsx` + `client.tsx` | CRUD do catálogo de turnos (feature mais recente) — usado em `/turmas` e em `/confraternizacao/[id]` |
 
 Nenhuma dessas sub-rotas de `/admin` aparece no nav principal do sidebar — só são alcançadas via `/admin`.
 
@@ -38,9 +39,10 @@ REST-style, chamadas via `fetch` no client em vez de Server Actions. Padrão com
 - `admin/congregations/route.ts`, `[id]/route.ts`, `[id]/logo/route.ts` (POST/DELETE upload de logo no Supabase Storage, só `ADMIN_PLATAFORMA`)
 - `admin/users/route.ts`, `[id]/route.ts`
 - `cases/route.ts`, `[id]/assign|conclude|contacts|modules|pause|resume/route.ts` — ciclo de vida do case de discipulado
-- `classes/route.ts`, `[id]/route.ts`, `[id]/lessons/route.ts`, `enroll/route.ts`
+- `class-shifts/route.ts` (GET/POST, papel `ADMIN_DISCIPULADO`/`ADMIN_PLATAFORMA`), `[id]/route.ts` (PATCH)
+- `classes/route.ts`, `[id]/route.ts`, `[id]/lessons/route.ts`, `enroll/route.ts` — `shift_id` referencia `class_shifts`
 - `disciples/route.ts`, `[id]/route.ts`
-- `events/route.ts`, `[id]/route.ts`, `[id]/status/route.ts`, `[id]/confirmations/route.ts`
+- `events/route.ts`, `[id]/route.ts`, `[id]/status/route.ts`, `[id]/confirmations/route.ts` — `class_shift_id` referencia `class_shifts`
 - `lessons/[id]/attendance/route.ts`
 - `modules/route.ts`, `[id]/route.ts`
 - `worship-services/route.ts` (GET/POST, papel `ADMIN_DISCIPULADO`/`ADMIN_PLATAFORMA`), `[id]/route.ts` (PATCH)

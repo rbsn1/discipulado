@@ -5,7 +5,7 @@ export async function getClasses(congregationId: string, options?: { activeOnly?
   const supabase = await createClient()
   let query = supabase
     .from('classes')
-    .select('*')
+    .select('*, class_shifts ( id, name )')
     .eq('congregation_id', congregationId)
     .order('name')
 
@@ -22,6 +22,7 @@ export async function getClassById(id: string) {
     .from('classes')
     .select(`
       *,
+      class_shifts ( id, name ),
       class_enrollments (
         *,
         disciples ( id, full_name, phone )
@@ -37,12 +38,12 @@ export async function getClassById(id: string) {
 export async function createClass(
   congregationId: string,
   name: string,
-  shift: string
+  shiftId: string | null
 ): Promise<Class> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('classes')
-    .insert({ congregation_id: congregationId, name, shift })
+    .insert({ congregation_id: congregationId, name, shift_id: shiftId })
     .select()
     .single()
 
@@ -52,7 +53,7 @@ export async function createClass(
 
 export async function updateClass(
   id: string,
-  updates: { name?: string; shift?: string; is_active?: boolean }
+  updates: { name?: string; shift_id?: string | null; is_active?: boolean }
 ): Promise<Class> {
   const supabase = await createClient()
   const { data, error } = await supabase

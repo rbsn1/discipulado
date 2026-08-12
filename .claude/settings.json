@@ -5,7 +5,16 @@
       "Bash(command -v nvm)",
       "Bash(npx --version)",
       "Bash(command -v supabase)",
-      "Bash(supabase --version)"
+      "Bash(supabase --version)",
+      "Edit(/.claude/skills/discipulado-map/**)",
+      "Bash(command -v psql)",
+      "Bash(psql --version)",
+      "Bash(grep -E \"^pg$|^postgres$|@supabase\")",
+      "Bash(getent hosts *)",
+      "Bash(echo \"---dns exit:$?\")",
+      "Bash(timeout 5 bash -c \"echo > /dev/tcp/8.8.8.8/443\")",
+      "Bash(timeout 5 bash -c \"echo > /dev/tcp/db.pxgwkkinguddibvhdlnn.supabase.co/6543\")",
+      "Bash(timeout 5 curl -sv --max-time 5 https://db.pxgwkkinguddibvhdlnn.supabase.co:443)"
     ]
   }
 }

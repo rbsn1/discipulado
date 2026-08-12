@@ -2077,3 +2077,86 @@ alter type contact_outcome add value if not exists 'CONTATO_ERRADO';
 alter type contact_outcome add value if not exists 'NAO_ATENDE';
 alter type contact_outcome add value if not exists 'NAO_RESPONDE';
 alter type contact_outcome add value if not exists 'OUTROS';
+
+-- =============================================================
+-- 017_class_shifts_catalog.sql
+-- =============================================================
+
+create table class_shifts (
+  id               uuid primary key default gen_random_uuid(),
+  congregation_id  uuid not null references congregations(id) on delete restrict,
+  name             text not null,
+  is_active        boolean not null default true,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now()
+);
+
+insert into class_shifts (congregation_id, name)
+select id, turno
+from congregations
+cross join (values ('Manhã'), ('Tarde'), ('Noite')) as t(turno);
+
+alter table classes
+  add column shift_id uuid references class_shifts(id) on delete restrict;
+
+update classes c
+  set shift_id = cs.id
+  from class_shifts cs
+  where cs.congregation_id = c.congregation_id
+    and (
+      (c.shift = 'MANHA' and cs.name = 'Manhã') or
+      (c.shift = 'TARDE' and cs.name = 'Tarde') or
+      (c.shift = 'NOITE' and cs.name = 'Noite')
+    );
+
+alter table classes alter column shift drop not null;
+alter table classes alter column shift drop default;
+
+alter table event_confirmations
+  add column class_shift_id uuid references class_shifts(id) on delete restrict;
+
+update event_confirmations ec
+  set class_shift_id = cs.id
+  from discipleship_cases dc
+  join class_shifts cs on cs.congregation_id = dc.congregation_id
+  where dc.id = ec.case_id
+    and (
+      (ec.class_shift = 'MANHA' and cs.name = 'Manhã') or
+      (ec.class_shift = 'TARDE' and cs.name = 'Tarde') or
+      (ec.class_shift = 'NOITE' and cs.name = 'Noite')
+    );
+
+alter table class_shifts enable row level security;
+
+create policy "class_shifts_select" on class_shifts for select
+  using (
+    is_platform_admin()
+    or congregation_id = auth_congregation_id()
+  );
+
+create policy "class_shifts_insert" on class_shifts for insert
+  with check (
+    is_platform_admin()
+    or (
+      congregation_id = auth_congregation_id()
+      and has_role(array['ADMIN_DISCIPULADO']::user_role[])
+    )
+  );
+
+create policy "class_shifts_update" on class_shifts for update
+  using (
+    is_platform_admin()
+    or (
+      congregation_id = auth_congregation_id()
+      and has_role(array['ADMIN_DISCIPULADO']::user_role[])
+    )
+  );
+
+create policy "class_shifts_delete" on class_shifts for delete
+  using (
+    is_platform_admin()
+    or (
+      congregation_id = auth_congregation_id()
+      and has_role(array['ADMIN_DISCIPULADO']::user_role[])
+    )
+  );

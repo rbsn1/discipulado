@@ -38,6 +38,7 @@ export async function getEventById(id: string) {
       *,
       event_confirmations (
         *,
+        class_shifts ( id, name ),
         discipleship_cases (
           id,
           disciples ( id, full_name, phone ),
@@ -111,7 +112,7 @@ export async function upsertConfirmation(
   caseId: string,
   confirmed: boolean,
   attended: boolean,
-  classShift: string | null,
+  classShiftId: string | null,
   createdBy: string
 ): Promise<void> {
   const supabase = await createClient()
@@ -122,7 +123,7 @@ export async function upsertConfirmation(
       case_id: caseId,
       confirmed,
       attended,
-      class_shift: classShift,
+      class_shift_id: classShiftId,
       created_by: createdBy,
     }, { onConflict: 'event_id,case_id' })
 
@@ -147,7 +148,7 @@ export async function getCaseConfraternizacaoInfo(caseId: string): Promise<{
   const supabase = await createClient()
   const { data } = await supabase
     .from('event_confirmations')
-    .select('class_shift')
+    .select('class_shifts ( name )')
     .eq('case_id', caseId)
     .eq('attended', true)
     .order('created_at', { ascending: false })
@@ -155,7 +156,7 @@ export async function getCaseConfraternizacaoInfo(caseId: string): Promise<{
 
   return {
     hasAttended: (data?.length ?? 0) > 0,
-    preferredShift: data?.[0]?.class_shift ?? null,
+    preferredShift: (data?.[0] as unknown as { class_shifts: { name: string } | null } | undefined)?.class_shifts?.name ?? null,
   }
 }
 

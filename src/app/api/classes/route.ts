@@ -19,6 +19,6 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   if (!body.name) return NextResponse.json({ error: 'Nome obrigatório' }, { status: 400 })
 
-  const c = await createClass(profile.congregation_id, body.name, body.shift ?? 'NAO_INFORMADO')
+  const c = await createClass(profile.congregation_id, body.name, body.shift_id ?? null)
   return NextResponse.json(c, { status: 201 })
 }

@@ -554,9 +554,7 @@ export function DiscipleDetailClient({
         <div className="flex flex-col gap-4">
           {preferredShift && (
             <div className="rounded-lg bg-indigo-50 px-3 py-2 text-sm text-indigo-800">
-              Turno preferido (confraternização): <strong>
-                {preferredShift === 'MANHA' ? 'Manhã' : preferredShift === 'TARDE' ? 'Tarde' : preferredShift === 'NOITE' ? 'Noite' : 'Não informado'}
-              </strong>
+              Turno preferido (confraternização): <strong>{preferredShift}</strong>
             </div>
           )}
           <Select
@@ -564,7 +562,7 @@ export function DiscipleDetailClient({
             placeholder="Selecionar turma"
             value={selectedClass}
             onChange={e => setSelectedClass(e.target.value)}
-            options={classes.map(c => ({ value: c.id, label: `${c.name} — ${c.shift === 'MANHA' ? 'Manhã' : c.shift === 'TARDE' ? 'Tarde' : c.shift === 'NOITE' ? 'Noite' : 'Turno não informado'}` }))}
+            options={classes.map(c => ({ value: c.id, label: `${c.name} — ${c.class_shifts?.name ?? 'Turno não informado'}` }))}
           />
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setEnrollModal(false)}>Cancelar</Button>

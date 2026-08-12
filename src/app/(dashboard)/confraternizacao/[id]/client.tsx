@@ -8,7 +8,7 @@ import { Alert } from '@/components/ui/alert'
 import { Select } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Dialog } from '@/components/ui/dialog'
-import { formatDate, downloadCSV, toCSV, SHIFT_LABEL, cn } from '@/lib/utils'
+import { formatDate, downloadCSV, toCSV, cn } from '@/lib/utils'
 import {
   ChevronRight,
   CheckCircle,
@@ -20,7 +20,7 @@ import {
   Search,
   UserPlus,
 } from 'lucide-react'
-import type { Profile, CaseListItem, ClassShift, EventStatus } from '@/types'
+import type { Profile, CaseListItem, ClassShiftCatalog, EventStatus } from '@/types'
 
 // ─── Tipos locais ────────────────────────────────────────────────────────────
 
@@ -30,7 +30,8 @@ interface Confirmation {
   case_id: string
   confirmed: boolean
   attended: boolean
-  class_shift: ClassShift | null
+  class_shift_id: string | null
+  class_shifts: { id: string; name: string } | null
 }
 
 interface EventDetail {
@@ -53,17 +54,11 @@ interface Props {
   activeCases: CaseListItem[]
   attendedCaseIds: string[]
   acceptedFbvCaseIds: string[]
+  shifts: ClassShiftCatalog[]
   currentProfile: Profile
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-const SHIFT_OPTIONS = [
-  { value: '',      label: 'Não informado' },
-  { value: 'MANHA', label: 'Manhã'         },
-  { value: 'TARDE', label: 'Tarde'         },
-  { value: 'NOITE', label: 'Noite'         },
-]
 
 const STATUS_CONFIG: Record<EventStatus, { label: string; icon: React.ElementType; badge: string }> = {
   PLANEJADO: { label: 'Planejado', icon: Clock,        badge: 'bg-indigo-100 text-indigo-800' },
@@ -73,7 +68,7 @@ const STATUS_CONFIG: Record<EventStatus, { label: string; icon: React.ElementTyp
 
 // ─── Componente principal ────────────────────────────────────────────────────
 
-export function EventDetailClient({ event, activeCases, attendedCaseIds, acceptedFbvCaseIds, currentProfile }: Props) {
+export function EventDetailClient({ event, activeCases, attendedCaseIds, acceptedFbvCaseIds, shifts, currentProfile }: Props) {
   const router = useRouter()
 
   const [loading, setLoading] = useState<string | null>(null)
@@ -101,16 +96,24 @@ export function EventDetailClient({ event, activeCases, attendedCaseIds, accepte
   const attendedElsewhereIds = useMemo(() => new Set(attendedCaseIds), [attendedCaseIds])
   const acceptedFbvIds = useMemo(() => new Set(acceptedFbvCaseIds), [acceptedFbvCaseIds])
 
+  const shiftOptions = useMemo(() => [
+    { value: '', label: 'Não informado' },
+    ...shifts.map(s => ({ value: s.id, label: s.name })),
+  ], [shifts])
+
   // ── Estatísticas de turno ──
 
   const shiftStats = useMemo(() => {
     const attended = event.event_confirmations.filter(c => c.attended)
-    const shifts: Record<string, number> = { MANHA: 0, TARDE: 0, NOITE: 0, NAO_INFORMADO: 0 }
+    const stats = new Map<string, { name: string; count: number }>()
     for (const c of attended) {
-      const key = c.class_shift ?? 'NAO_INFORMADO'
-      shifts[key] = (shifts[key] ?? 0) + 1
+      const key = c.class_shift_id ?? 'NAO_INFORMADO'
+      const name = c.class_shifts?.name ?? 'Não informado'
+      const entry = stats.get(key) ?? { name, count: 0 }
+      entry.count++
+      stats.set(key, entry)
     }
-    return shifts
+    return [...stats.entries()].map(([id, v]) => ({ id, ...v }))
   }, [event.event_confirmations])
 
   const totalConfirmed = event.event_confirmations.filter(c => c.confirmed).length
@@ -140,7 +143,7 @@ export function EventDetailClient({ event, activeCases, attendedCaseIds, accepte
     caseId: string,
     field: 'confirmed' | 'attended',
     currentValue: boolean,
-    shift?: ClassShift | null
+    shiftId?: string | null
   ) {
     setLoading(caseId + field)
     const existing = event.event_confirmations.find(c => c.case_id === caseId)
@@ -148,7 +151,7 @@ export function EventDetailClient({ event, activeCases, attendedCaseIds, accepte
       case_id: caseId,
       confirmed: field === 'confirmed' ? !currentValue : (existing?.confirmed ?? false),
       attended:  field === 'attended'  ? !currentValue : (existing?.attended  ?? false),
-      class_shift: shift !== undefined ? shift : existing?.class_shift ?? null,
+      class_shift_id: shiftId !== undefined ? shiftId : existing?.class_shift_id ?? null,
     }
     const res = await fetch(`/api/events/${event.id}/confirmations`, {
       method: 'POST',
@@ -162,7 +165,7 @@ export function EventDetailClient({ event, activeCases, attendedCaseIds, accepte
 
   async function handleAttendConfirm() {
     if (!attendModal) return
-    await toggle(attendModal, 'attended', false, (attendShift as ClassShift) || null)
+    await toggle(attendModal, 'attended', false, attendShift || null)
     setAttendModal(null)
   }
 
@@ -184,7 +187,7 @@ export function EventDetailClient({ event, activeCases, attendedCaseIds, accepte
       .map(c => ({
         'Nome':       c.discipleship_cases?.disciples?.full_name ?? '',
         'Telefone':   (c.discipleship_cases?.disciples as any)?.phone ?? '',
-        'Turno':      c.class_shift ? SHIFT_LABEL[c.class_shift] : '',
+        'Turno':      c.class_shifts?.name ?? '',
         'Confirmado': c.confirmed ? 'Sim' : 'Não',
         'Presente':   c.attended  ? 'Sim' : 'Não',
       }))
@@ -256,18 +259,12 @@ export function EventDetailClient({ event, activeCases, attendedCaseIds, accepte
       {/* ── Resumo de turnos ── */}
       {totalAttended > 0 && (
         <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {(['MANHA', 'TARDE', 'NOITE', 'NAO_INFORMADO'] as const).map(shift => {
-            const count = shiftStats[shift] ?? 0
-            if (count === 0) return null
-            return (
-              <div key={shift} className="rounded-xl border border-gray-100 bg-white p-4 text-center shadow-sm">
-                <p className="text-2xl font-bold text-gray-900">{count}</p>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  {shift === 'MANHA' ? 'Manhã' : shift === 'TARDE' ? 'Tarde' : shift === 'NOITE' ? 'Noite' : 'Não informado'}
-                </p>
-              </div>
-            )
-          })}
+          {shiftStats.map(({ id, name, count }) => (
+            <div key={id} className="rounded-xl border border-gray-100 bg-white p-4 text-center shadow-sm">
+              <p className="text-2xl font-bold text-gray-900">{count}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{name}</p>
+            </div>
+          ))}
         </div>
       )}
 
@@ -327,7 +324,7 @@ export function EventDetailClient({ event, activeCases, attendedCaseIds, accepte
                     </div>
                   </td>
                   <td className="px-4 py-2.5 text-gray-600">
-                    {c.class_shift ? SHIFT_LABEL[c.class_shift] : '—'}
+                    {c.class_shifts?.name ?? '—'}
                   </td>
                   <td className="px-4 py-2.5 text-center">
                     {canManage ? (
@@ -352,7 +349,7 @@ export function EventDetailClient({ event, activeCases, attendedCaseIds, accepte
                         onClick={() =>
                           c.attended
                             ? toggle(c.case_id, 'attended', true)
-                            : (() => { setAttendShift(c.class_shift ?? ''); setAttendModal(c.case_id) })()
+                            : (() => { setAttendShift(c.class_shift_id ?? ''); setAttendModal(c.case_id) })()
                         }
                         disabled={loading === c.case_id + 'attended'}
                         title={c.attended ? 'Desmarcar presença' : 'Registrar presença e turno'}
@@ -444,7 +441,7 @@ export function EventDetailClient({ event, activeCases, attendedCaseIds, accepte
             label="Turno preferido"
             value={attendShift}
             onChange={e => setAttendShift(e.target.value)}
-            options={SHIFT_OPTIONS}
+            options={shiftOptions}
           />
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setAttendModal(null)}>Cancelar</Button>

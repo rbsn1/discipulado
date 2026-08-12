@@ -15,7 +15,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   try {
     const updated = await updateClass(id, {
       name: body.name,
-      shift: body.shift,
+      shift_id: body.shift_id,
       is_active: body.is_active,
     })
     return NextResponse.json(updated)

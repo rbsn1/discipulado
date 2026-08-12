@@ -19,8 +19,6 @@ export type CaseStage = 'ACOLHIMENTO' | 'DISCIPULADO' | 'POS_DISCIPULADO'
 
 export type ModuleProgressStatus = 'NAO_INICIADO' | 'EM_ANDAMENTO' | 'CONCLUIDO'
 
-export type ClassShift = 'MANHA' | 'TARDE' | 'NOITE' | 'NAO_INFORMADO'
-
 export type AttendanceStatus = 'PRESENTE' | 'FALTA' | 'JUSTIFICADA'
 
 export type ContactOutcome =
@@ -202,6 +200,15 @@ export interface WorshipService {
   updated_at: string
 }
 
+export interface ClassShiftCatalog {
+  id: string
+  congregation_id: string
+  name: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
 export interface PlatformSettings {
   id: number
   login_verse_text: string
@@ -226,10 +233,11 @@ export interface Class {
   id: string
   congregation_id: string
   name: string
-  shift: ClassShift
+  shift_id: string | null
   is_active: boolean
   created_at: string
   updated_at: string
+  class_shifts?: Pick<ClassShiftCatalog, 'id' | 'name'> | null
 }
 
 export interface ClassEnrollment {
@@ -295,7 +303,7 @@ export interface EventConfirmation {
   case_id: string
   confirmed: boolean
   attended: boolean
-  class_shift: ClassShift | null
+  class_shift_id: string | null
   notes: string | null
   created_by: string | null
   created_at: string

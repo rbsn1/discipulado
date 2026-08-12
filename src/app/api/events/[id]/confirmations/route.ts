@@ -29,7 +29,7 @@ export async function POST(
       body.case_id,
       body.confirmed ?? false,
       body.attended ?? false,
-      body.class_shift ?? null,
+      body.class_shift_id ?? null,
       profile.id
     )
     return NextResponse.json({ success: true })

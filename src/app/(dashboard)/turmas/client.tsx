@@ -9,38 +9,36 @@ import { Select } from '@/components/ui/select'
 import { Dialog } from '@/components/ui/dialog'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { SHIFT_LABEL } from '@/lib/utils'
 import { Plus, BookOpen, Pencil } from 'lucide-react'
-import type { Class, ClassShift, UserRole } from '@/types'
+import type { Class, ClassShiftCatalog, UserRole } from '@/types'
 
 interface Props {
   classes: Class[]
+  shifts: ClassShiftCatalog[]
   congregationId: string
   currentRole: UserRole
 }
 
-const SHIFT_OPTIONS = [
-  { value: 'MANHA', label: 'Manhã' },
-  { value: 'TARDE', label: 'Tarde' },
-  { value: 'NOITE', label: 'Noite' },
-  { value: 'NAO_INFORMADO', label: 'Não informado' },
-]
-
-export function TurmasClient({ classes, currentRole }: Props) {
+export function TurmasClient({ classes, shifts, currentRole }: Props) {
   const router = useRouter()
   const [showForm, setShowForm] = useState(false)
   const [editClass, setEditClass] = useState<Class | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [name, setName] = useState('')
-  const [shift, setShift] = useState<ClassShift>('NAO_INFORMADO')
+  const [shiftId, setShiftId] = useState('')
 
   const canManage = ['ADMIN_DISCIPULADO', 'DISCIPULADOR', 'ADMIN_PLATAFORMA'].includes(currentRole)
+
+  const shiftOptions = [
+    { value: '', label: 'Não informado' },
+    ...shifts.map(s => ({ value: s.id, label: s.name })),
+  ]
 
   function openCreate() {
     setEditClass(null)
     setName('')
-    setShift('NAO_INFORMADO')
+    setShiftId('')
     setError('')
     setShowForm(true)
   }
@@ -50,7 +48,7 @@ export function TurmasClient({ classes, currentRole }: Props) {
     e.stopPropagation()
     setEditClass(c)
     setName(c.name)
-    setShift(c.shift)
+    setShiftId(c.shift_id ?? '')
     setError('')
     setShowForm(true)
   }
@@ -66,7 +64,7 @@ export function TurmasClient({ classes, currentRole }: Props) {
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: name.trim(), shift }),
+      body: JSON.stringify({ name: name.trim(), shift_id: shiftId || null }),
     })
     if (!res.ok) {
       const d = await res.json()
@@ -110,7 +108,7 @@ export function TurmasClient({ classes, currentRole }: Props) {
                 </div>
                 <div className="min-w-0 flex-1 pr-8">
                   <p className="font-semibold text-gray-900 truncate">{c.name}</p>
-                  <p className="text-sm text-gray-500 mt-0.5">{SHIFT_LABEL[c.shift]}</p>
+                  <p className="text-sm text-gray-500 mt-0.5">{c.class_shifts?.name ?? 'Não informado'}</p>
                   {!c.is_active && (
                     <Badge variant="muted" className="mt-1">Inativa</Badge>
                   )}
@@ -145,9 +143,9 @@ export function TurmasClient({ classes, currentRole }: Props) {
           />
           <Select
             label="Turno"
-            value={shift}
-            onChange={e => setShift(e.target.value as ClassShift)}
-            options={SHIFT_OPTIONS}
+            value={shiftId}
+            onChange={e => setShiftId(e.target.value)}
+            options={shiftOptions}
           />
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setShowForm(false)}>Cancelar</Button>

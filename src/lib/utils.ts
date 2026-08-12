@@ -2,7 +2,7 @@ import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import type { CaseStatus, CaseStage, UserRole, ClassShift, AttendanceStatus, ModuleProgressStatus } from '@/types'
+import type { CaseStatus, CaseStage, UserRole, AttendanceStatus, ModuleProgressStatus } from '@/types'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -52,13 +52,6 @@ export const ROLE_LABEL: Record<UserRole, string> = {
   DISCIPULADOR: 'Acolhedor',
   SECRETARIA_DISCIPULADO: 'Secretaria',
   SM_DISCIPULADO: 'SM Discipulado',
-}
-
-export const SHIFT_LABEL: Record<ClassShift, string> = {
-  MANHA: 'Manhã',
-  TARDE: 'Tarde',
-  NOITE: 'Noite',
-  NAO_INFORMADO: 'Não Informado',
 }
 
 export const ATTENDANCE_LABEL: Record<AttendanceStatus, string> = {

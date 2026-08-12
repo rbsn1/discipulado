@@ -9,7 +9,7 @@ import { Select } from '@/components/ui/select'
 import { Dialog } from '@/components/ui/dialog'
 import { Alert } from '@/components/ui/alert'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { SHIFT_LABEL, ATTENDANCE_LABEL, ATTENDANCE_COLOR, formatDate, cn } from '@/lib/utils'
+import { ATTENDANCE_LABEL, ATTENDANCE_COLOR, formatDate, cn } from '@/lib/utils'
 import { Plus, ChevronRight, CalendarDays, Users, CheckCircle, X, Minus } from 'lucide-react'
 import type { Profile, ModuleTemplate, AttendanceStatus } from '@/types'
 
@@ -31,7 +31,7 @@ interface Props {
   turma: {
     id: string
     name: string
-    shift: string
+    class_shifts: { name: string } | null
     is_active: boolean
     congregation_id: string
     class_enrollments: Enrollment[]
@@ -161,7 +161,7 @@ export function TurmaDetailClient({ turma, modules, currentProfile }: Props) {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{turma.name}</h1>
-          <p className="text-sm text-gray-500">{SHIFT_LABEL[turma.shift as keyof typeof SHIFT_LABEL]}</p>
+          <p className="text-sm text-gray-500">{turma.class_shifts?.name ?? 'Não informado'}</p>
         </div>
       </div>
 
