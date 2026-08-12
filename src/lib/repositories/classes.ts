@@ -185,6 +185,22 @@ export async function createLesson(
   return data as Lesson
 }
 
+export async function updateLesson(
+  id: string,
+  updates: { date?: string; topic?: string | null; module_template_id?: string | null }
+): Promise<Lesson> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('lessons')
+    .update(updates)
+    .eq('id', id)
+    .select('*, module_templates ( id, title )')
+    .single()
+
+  if (error) throw error
+  return data as Lesson
+}
+
 export async function getLessonAttendance(lessonId: string) {
   const supabase = await createClient()
   const { data, error } = await supabase

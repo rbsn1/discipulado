@@ -10,7 +10,7 @@ import { Dialog } from '@/components/ui/dialog'
 import { Alert } from '@/components/ui/alert'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ATTENDANCE_LABEL, ATTENDANCE_COLOR, formatDate, cn } from '@/lib/utils'
-import { Plus, ChevronRight, CalendarDays, Users, CheckCircle, X, Minus, Search, UserMinus, UserPlus } from 'lucide-react'
+import { Plus, ChevronRight, CalendarDays, Users, CheckCircle, X, Minus, Search, UserMinus, UserPlus, Pencil } from 'lucide-react'
 import type { Profile, ModuleTemplate, AttendanceStatus, CaseListItem } from '@/types'
 import { isAfter, isBefore, parseISO, startOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns'
 import { getAttendanceCriticality } from '@/lib/utils'
@@ -70,6 +70,7 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, currentProfil
   const [lessonLoaded, setLessonLoaded] = useState(false)
   const [activeTab, setActiveTab] = useState<'alunos' | 'aulas'>('alunos')
   const [showNewLesson, setShowNewLesson] = useState(false)
+  const [editLesson, setEditLesson] = useState<Lesson | null>(null)
   const [showAttendance, setShowAttendance] = useState<string | null>(null)
   const [attendanceItems, setAttendanceItems] = useState<Record<string, AttendanceStatus>>({})
   const [attendanceIsNew, setAttendanceIsNew] = useState(true)
@@ -169,25 +170,52 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, currentProfil
     setAddingId(null)
   }
 
-  async function handleCreateLesson() {
+  function openNewLesson() {
+    setEditLesson(null)
+    setLessonDate('')
+    setLessonTopic('')
+    setLessonModule('')
+    setError('')
+    setShowNewLesson(true)
+  }
+
+  function openEditLesson(l: Lesson) {
+    setEditLesson(l)
+    setLessonDate(l.date)
+    setLessonTopic(l.topic ?? '')
+    setLessonModule(l.module_templates?.id ?? '')
+    setError('')
+    setShowNewLesson(true)
+  }
+
+  async function handleSaveLesson() {
     if (!lessonDate) { setError('Data obrigatória'); return }
     setLoading(true)
     setError('')
-    const res = await fetch(`/api/classes/${turma.id}/lessons`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        date: lessonDate,
-        topic: lessonTopic || null,
-        module_template_id: lessonModule || null,
-      }),
-    })
+    const body = {
+      date: lessonDate,
+      topic: lessonTopic || null,
+      module_template_id: lessonModule || null,
+    }
+    const res = await fetch(
+      editLesson ? `/api/lessons/${editLesson.id}` : `/api/classes/${turma.id}/lessons`,
+      {
+        method: editLesson ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }
+    )
     if (!res.ok) {
       setError((await res.json()).error)
     } else {
       const lesson = await res.json()
-      setLessons(prev => [lesson, ...prev])
+      setLessons(prev =>
+        editLesson
+          ? prev.map(l => (l.id === lesson.id ? { ...l, ...lesson } : l))
+          : [lesson, ...prev]
+      )
       setShowNewLesson(false)
+      setEditLesson(null)
       setLessonDate('')
       setLessonTopic('')
       setLessonModule('')
@@ -387,7 +415,7 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, currentProfil
         <>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             {canManage ? (
-              <Button onClick={() => setShowNewLesson(true)}>
+              <Button onClick={openNewLesson}>
                 <Plus className="h-4 w-4" />
                 Nova aula
               </Button>
@@ -449,13 +477,23 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, currentProfil
                     )}
                   </div>
                   {canManage && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openAttendance(l.id)}
-                    >
-                      Chamada
-                    </Button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => openEditLesson(l)}
+                        className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                        title="Editar aula"
+                        aria-label="Editar aula"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openAttendance(l.id)}
+                      >
+                        Chamada
+                      </Button>
+                    </div>
                   )}
                 </div>
               ))}
@@ -464,8 +502,12 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, currentProfil
         </>
       )}
 
-      {/* Modal: nova aula */}
-      <Dialog open={showNewLesson} onClose={() => setShowNewLesson(false)} title="Nova Aula">
+      {/* Modal: nova aula / editar aula */}
+      <Dialog
+        open={showNewLesson}
+        onClose={() => { setShowNewLesson(false); setEditLesson(null) }}
+        title={editLesson ? 'Editar Aula' : 'Nova Aula'}
+      >
         <div className="flex flex-col gap-4">
           {error && <Alert type="error">{error}</Alert>}
           <Input
@@ -493,8 +535,10 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, currentProfil
             </p>
           )}
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setShowNewLesson(false)}>Cancelar</Button>
-            <Button onClick={handleCreateLesson} loading={loading}>Criar aula</Button>
+            <Button variant="outline" onClick={() => { setShowNewLesson(false); setEditLesson(null) }}>Cancelar</Button>
+            <Button onClick={handleSaveLesson} loading={loading}>
+              {editLesson ? 'Salvar alterações' : 'Criar aula'}
+            </Button>
           </div>
         </div>
       </Dialog>
