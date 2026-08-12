@@ -215,7 +215,7 @@ export default async function PainelPage() {
               count={stats.sem_matricula}
               icon={AlertTriangle}
               href="/acolhimento?status=PENDENTE_MATRICULA"
-              description="Discipulandos acolhidos ainda sem turma."
+              description="Vidas acolhidas ainda sem turma."
               severity="warning"
             />
             <AlertCard
@@ -223,7 +223,7 @@ export default async function PainelPage() {
               count={stats.baixa_frequencia}
               icon={TrendingDown}
               href="/acolhimento?filter=baixa_frequencia"
-              description="Discipulandos em risco de não cumprir o requisito mínimo."
+              description="Vidas acolhidas em risco de não cumprir o requisito mínimo."
               severity="danger"
             />
             <AlertCard
@@ -231,7 +231,7 @@ export default async function PainelPage() {
               count={stats.sem_contato_recente}
               icon={PhoneOff}
               href="/acolhimento?filter=sem_contato"
-              description="Verifique se esses discipulandos precisam de atenção."
+              description="Verifique se essas vidas acolhidas precisam de atenção."
               severity="warning"
             />
           </div>

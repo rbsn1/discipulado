@@ -24,9 +24,9 @@ const navItems = [
   { href: '/painel',           label: 'Painel',        icon: LayoutDashboard },
   { href: '/discipulandos',    label: 'Acolhimento',   icon: Users           },
   { href: '/acolhimento',      label: 'Jornada',       icon: Heart           },
-  { href: '/confraternizacao', label: 'Boas Vindas',   icon: CalendarDays    },
-  { href: '/turmas',           label: 'Turmas',        icon: BookOpen        },
-  { href: '/pos-discipulado',  label: 'Integração',    icon: Star            },
+  { href: '/confraternizacao', label: 'Boas Vindas',   icon: CalendarDays, acolhedorHidden: true },
+  { href: '/turmas',           label: 'Turmas',        icon: BookOpen,     acolhedorHidden: true },
+  { href: '/pos-discipulado',  label: 'Integração',    icon: Star,         acolhedorHidden: true },
   { href: '/relatorios',       label: 'Relatórios',    icon: BarChart2,  adminOnly: true },
   { href: '/admin',            label: 'Administração', icon: Settings,   adminOnly: true },
 ]
@@ -48,7 +48,10 @@ export function Sidebar({ profile, congregationName, theme, open = true, onClose
   const palette  = deriveTheme(theme)
 
   const canAccessAdmin = ['ADMIN_PLATAFORMA', 'ADMIN_DISCIPULADO'].includes(profile.role)
-  const visibleItems   = navItems.filter(item => !item.adminOnly || canAccessAdmin)
+  const isAcolhedor    = profile.role === 'DISCIPULADOR'
+  const visibleItems   = navItems.filter(item =>
+    (!item.adminOnly || canAccessAdmin) && (!item.acolhedorHidden || !isAcolhedor)
+  )
 
   return (
     <>

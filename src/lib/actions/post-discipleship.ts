@@ -73,7 +73,7 @@ export async function confirmDepartmentContact(caseId: string) {
   await supabase.from('case_events').insert({
     case_id: caseId,
     type: 'POS_DISCIPULADO',
-    description: 'Departamento confirmou contato com o discipulando',
+    description: 'Departamento confirmou contato com a vida acolhida',
     metadata: { confirmed_by: profile.id },
     created_by: profile.id,
   })

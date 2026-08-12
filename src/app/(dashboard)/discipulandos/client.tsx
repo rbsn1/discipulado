@@ -10,12 +10,13 @@ import { Dialog } from '@/components/ui/dialog'
 import { DiscipleForm } from '@/components/features/disciples/disciple-form'
 import { CASE_STATUS_LABEL, CASE_STATUS_COLOR, formatDate } from '@/lib/utils'
 import { Plus, Search, X } from 'lucide-react'
-import type { DiscipleListItem, CreateDiscipleInput, WorshipService, Class, Profile, CaseStatus } from '@/types'
+import type { DiscipleListItem, CreateDiscipleInput, WorshipService, Class, Profile, CaseStatus, UserRole } from '@/types'
 
 interface Props {
   disciples: DiscipleListItem[]
   congregationId: string
   currentUserId: string
+  currentRole: UserRole
   search?: string
   status?: string
   turma?: string
@@ -34,6 +35,7 @@ export function DisciplesClientPage({
   disciples,
   congregationId,
   currentUserId,
+  currentRole,
   search,
   status,
   turma,
@@ -54,7 +56,7 @@ export function DisciplesClientPage({
     })
     if (!res.ok) {
       const err = await res.json()
-      return { error: err.error ?? 'Erro ao cadastrar discipulando' }
+      return { error: err.error ?? 'Erro ao cadastrar vida acolhida' }
     }
     setShowForm(false)
     router.refresh()
@@ -81,8 +83,11 @@ export function DisciplesClientPage({
     <>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Discipulandos</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Vidas Acolhidas</h1>
           <p className="text-sm text-gray-500 mt-1">{disciples.length} registro(s) encontrado(s)</p>
+          {currentRole === 'DISCIPULADOR' && (
+            <p className="text-xs text-gray-500 mt-0.5">Mostrando suas vidas acolhidas e as que ainda não têm responsável.</p>
+          )}
         </div>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4" />
@@ -118,13 +123,15 @@ export function DisciplesClientPage({
           options={classes.map(c => ({ value: c.id, label: c.name }))}
           className="sm:w-40"
         />
-        <Select
-          value={responsavel ?? ''}
-          onChange={e => applyFilters({ responsavel: e.target.value || undefined })}
-          placeholder="Responsável"
-          options={discipuladores.map(d => ({ value: d.id, label: d.name }))}
-          className="sm:w-40"
-        />
+        {currentRole !== 'DISCIPULADOR' && (
+          <Select
+            value={responsavel ?? ''}
+            onChange={e => applyFilters({ responsavel: e.target.value || undefined })}
+            placeholder="Responsável"
+            options={discipuladores.map(d => ({ value: d.id, label: d.name }))}
+            className="sm:w-40"
+          />
+        )}
         {hasFilters && (
           <Button variant="outline" onClick={() => applyFilters({ status: undefined, turma: undefined, responsavel: undefined })}>
             <X className="h-4 w-4" />
@@ -151,7 +158,7 @@ export function DisciplesClientPage({
             {disciples.length === 0 && (
               <tr>
                 <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
-                  Nenhum discipulando encontrado
+                  Nenhuma vida acolhida encontrada
                 </td>
               </tr>
             )}

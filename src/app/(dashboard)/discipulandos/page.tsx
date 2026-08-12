@@ -31,12 +31,23 @@ export default async function DiscipulandosPage({
     p => ['DISCIPULADOR', 'ADMIN_DISCIPULADO', 'SM_DISCIPULADO'].includes(p.role) && p.is_active
   )
 
+  // Acolhedor só vê as vidas acolhidas atribuídas a ele + as que ainda não
+  // têm responsável (mesma regra de /acolhimento) — SM/Admin continuam
+  // vendo todo mundo.
+  const visibleDisciples = profile.role === 'DISCIPULADOR'
+    ? disciples.filter(d => {
+        const assignedTo = d.discipleship_cases?.[0]?.assigned_to
+        return !assignedTo || assignedTo === profile.id
+      })
+    : disciples
+
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto">
       <DisciplesClientPage
-        disciples={disciples}
+        disciples={visibleDisciples}
         congregationId={profile.congregation_id}
         currentUserId={profile.id}
+        currentRole={profile.role}
         search={search}
         status={status}
         turma={turma}

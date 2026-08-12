@@ -227,7 +227,7 @@ export function DiscipleDetailClient({
       <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
         <div>
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-            <Link href="/discipulandos" className="hover:underline">Discipulandos</Link>
+            <Link href="/discipulandos" className="hover:underline">Vidas Acolhidas</Link>
             <ChevronRight className="h-4 w-4" />
             <span>{disciple.full_name}</span>
           </div>
@@ -259,7 +259,7 @@ export function DiscipleDetailClient({
               size="sm"
               onClick={() => setEnrollModal(true)}
               disabled={!hasAttendedConfraternizacao}
-              title={!hasAttendedConfraternizacao ? 'Discipulando precisa participar de uma confraternização primeiro' : ''}
+              title={!hasAttendedConfraternizacao ? 'Vida acolhida precisa participar de uma Festa de Boas Vindas primeiro' : ''}
             >
               <BookOpen className="h-4 w-4" />
               Matricular em turma
@@ -509,7 +509,7 @@ export function DiscipleDetailClient({
       </div>
 
       {/* Modal: editar discipulando */}
-      <Dialog open={editDisciple} onClose={() => setEditDisciple(false)} title="Editar Discipulando">
+      <Dialog open={editDisciple} onClose={() => setEditDisciple(false)} title="Editar Vida Acolhida">
         <DiscipleForm
           defaultValues={disciple}
           worshipServices={worshipServices}

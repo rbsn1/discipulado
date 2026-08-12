@@ -231,7 +231,7 @@ export function PosDiscipuladoClient({ cases, departments, currentProfile }: Pro
 
       {cases.length === 0 && (
         <div className="rounded-lg border border-gray-200 bg-white p-10 text-center text-gray-400 text-sm">
-          Nenhum discipulando concluído ainda
+          Nenhuma vida acolhida concluída ainda
         </div>
       )}
 

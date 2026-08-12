@@ -267,7 +267,7 @@ export function AcolhimentoClient({
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           {/* Busca */}
           <Input
-            placeholder="Buscar discipulando..."
+            placeholder="Buscar vida acolhida..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full sm:max-w-xs h-9"
@@ -409,10 +409,10 @@ export function AcolhimentoClient({
       <Dialog open={startModal} onClose={() => setStartModal(false)} title="Iniciar Acolhimento">
         <div className="flex flex-col gap-4">
           <Select
-            label="Discipulando *"
+            label="Vida Acolhida *"
             value={startDiscipleId}
             onChange={e => setStartDiscipleId(e.target.value)}
-            placeholder="Selecionar discipulando"
+            placeholder="Selecionar vida acolhida"
             options={disciplesSemCase.map(d => ({ value: d.id, label: d.full_name + (d.phone ? ` — ${d.phone}` : '') }))}
           />
           <Input

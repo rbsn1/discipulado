@@ -284,7 +284,7 @@ export function EventDetailClient({ event, activeCases, attendedCaseIds, accepte
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 text-left">
-              <th className="px-4 py-3 font-medium text-gray-600">Discipulando</th>
+              <th className="px-4 py-3 font-medium text-gray-600">Vida Acolhida</th>
               <th className="px-4 py-3 font-medium text-gray-600">Turno</th>
               <th className="px-4 py-3 text-center font-medium text-gray-600">Confirmado</th>
               <th className="px-4 py-3 text-center font-medium text-gray-600">Presente</th>
@@ -395,7 +395,7 @@ export function EventDetailClient({ event, activeCases, attendedCaseIds, accepte
 
           {unconfirmedCases.length === 0 ? (
             <p className="px-4 py-6 text-center text-sm text-gray-500">
-              {addSearch ? 'Nenhum discipulando encontrado' : 'Todos os discipulandos que aceitaram participar da FBV já foram adicionados ou já participaram de uma Festa de Boas Vindas'}
+              {addSearch ? 'Nenhuma vida acolhida encontrada' : 'Todas as vidas acolhidas que aceitaram participar da FBV já foram adicionadas ou já participaram de uma Festa de Boas Vindas'}
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -479,7 +479,7 @@ export function EventDetailClient({ event, activeCases, attendedCaseIds, accepte
           </div>
           {newStatus === 'CANCELADO' && (
             <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-800">
-              Atenção: cancelar o evento remove a elegibilidade de matrícula dos discipulandos que só participaram deste evento.
+              Atenção: cancelar o evento remove a elegibilidade de matrícula das vidas acolhidas que só participaram deste evento.
             </p>
           )}
           <div className="flex justify-end gap-2">

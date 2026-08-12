@@ -11,6 +11,7 @@ export default async function TurmaDetailPage({
 }) {
   const profile = await getCurrentProfile()
   if (!profile?.congregation_id) redirect('/painel')
+  if (profile.role === 'DISCIPULADOR') redirect('/painel')
 
   const { id } = await params
   const [turma, modules] = await Promise.all([

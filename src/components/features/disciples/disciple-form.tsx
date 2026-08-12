@@ -51,7 +51,7 @@ export function DiscipleForm({ defaultValues, worshipServices, acolhedores, onSu
         label="Nome completo *"
         defaultValue={defaultValues?.full_name}
         required
-        placeholder="Nome do discipulando"
+        placeholder="Nome da vida acolhida"
       />
 
       <div className="grid grid-cols-2 gap-3">
@@ -107,7 +107,7 @@ export function DiscipleForm({ defaultValues, worshipServices, acolhedores, onSu
           Cancelar
         </Button>
         <Button type="submit" loading={loading}>
-          {defaultValues?.id ? 'Salvar alterações' : 'Cadastrar discipulando'}
+          {defaultValues?.id ? 'Salvar alterações' : 'Cadastrar vida acolhida'}
         </Button>
       </div>
     </form>

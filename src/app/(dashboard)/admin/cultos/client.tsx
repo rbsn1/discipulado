@@ -82,7 +82,7 @@ export function CultosClient({ services }: Props) {
 
       {services.length === 0 && (
         <Alert type="warning">
-          Nenhum culto cadastrado. Cadastre os cultos da congregação para usá-los na origem do discipulando.
+          Nenhum culto cadastrado. Cadastre os cultos da congregação para usá-los na origem da vida acolhida.
         </Alert>
       )}
 
