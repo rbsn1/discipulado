@@ -15,8 +15,17 @@ export default async function AcolhimentoPage({
 
   const { status, filter, search, discipulador } = await searchParams
 
+  // Jornada = só quem está com trabalho em andamento. Concluído não entra
+  // mais aqui — quem já concluiu é assunto do Pós-discipulado (/pos-discipulado),
+  // não da fila de trabalho da Jornada. Isso também corrige de graça um caso
+  // que antes ficava estranho: alguém com case concluído podia legitimamente
+  // começar um novo acolhimento (a RPC só bloqueia se já tem case ATIVO), mas
+  // aparecia preso como "já tem case" só por causa do histórico concluído.
   const [allCases, discipuladores, disciples] = await Promise.all([
-    getCases(profile.congregation_id, { search }),
+    getCases(profile.congregation_id, {
+      search,
+      status: ['PENDENTE_MATRICULA', 'EM_DISCIPULADO', 'PAUSADO'],
+    }),
     getProfilesByCongregation(profile.congregation_id),
     getDisciplesLite(profile.congregation_id),
   ])
@@ -35,8 +44,9 @@ export default async function AcolhimentoPage({
     : allCases
 
   // Discipulandos sem case ativo para o modal de iniciar acolhimento — usa a
-  // lista COMPLETA de cases (não a filtrada acima), senão um discipulando já
-  // atribuído a outro acolhedor apareceria aqui como "sem case" por engano.
+  // lista COMPLETA de cases ativos (não a filtrada acima), senão um
+  // discipulando já atribuído a outro acolhedor apareceria aqui como "sem
+  // case" por engano.
   const casedDiscipleIds = new Set(allCases.map(c => c.disciple_id))
   const disciplesSemCase = disciples.filter(d => !casedDiscipleIds.has(d.id))
 

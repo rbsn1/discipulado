@@ -12,7 +12,6 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   CASE_STATUS_LABEL,
   CASE_STATUS_COLOR,
-  formatDate,
   getAttendanceCriticality,
   cn,
 } from '@/lib/utils'
@@ -24,7 +23,6 @@ import {
   PhoneCall,
   Clock,
   Plus,
-  Filter,
   X,
 } from 'lucide-react'
 import type {
@@ -39,12 +37,9 @@ import { differenceInDays, parseISO } from 'date-fns'
 
 // ─── Constantes ────────────────────────────────────────────────────────────────
 
-const COLUMNS: { status: CaseStatus; label: string; color: string }[] = [
-  { status: 'PENDENTE_MATRICULA', label: 'Pendente de Matrícula', color: 'border-yellow-400' },
-  { status: 'EM_DISCIPULADO',    label: 'Em Discipulado',         color: 'border-blue-500'  },
-  { status: 'PAUSADO',           label: 'Pausado',                color: 'border-gray-400'  },
-  { status: 'CONCLUIDO',         label: 'Concluído',              color: 'border-green-500' },
-]
+// Ordem do funil — usada nos chips de filtro por status (Jornada só trabalha
+// status ativos; Concluído não aparece mais aqui, ver acolhimento/page.tsx).
+const STATUS_ORDER: CaseStatus[] = ['PENDENTE_MATRICULA', 'EM_DISCIPULADO', 'PAUSADO']
 
 const CONTACT_OUTCOMES: { value: ContactOutcome; label: string }[] = [
   { value: 'ACEITOU_FBV',     label: 'Aceitou participar da FBV'      },
@@ -55,7 +50,7 @@ const CONTACT_OUTCOMES: { value: ContactOutcome; label: string }[] = [
   { value: 'OUTROS',          label: 'Outros'                         },
 ]
 
-// Limite de cards por coluna antes de paginar
+// Limite de linhas visíveis antes de paginar
 const PAGE_SIZE = 20
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
@@ -116,14 +111,12 @@ export function AcolhimentoClient({
   // Filtros
   const [search, setSearch]             = useState(initialSearch ?? '')
   const [filterDiscipulador, setFilterDiscipulador] = useState(initialDiscipulador ?? '')
+  const [statusFilter, setStatusFilter] = useState<CaseStatus | ''>(
+    STATUS_ORDER.includes(initialStatus as CaseStatus) ? (initialStatus as CaseStatus) : ''
+  )
 
-  // Paginação por coluna
-  const [pageLimits, setPageLimits]     = useState<Record<CaseStatus, number>>({
-    PENDENTE_MATRICULA: PAGE_SIZE,
-    EM_DISCIPULADO:     PAGE_SIZE,
-    PAUSADO:            PAGE_SIZE,
-    CONCLUIDO:          PAGE_SIZE,
-  })
+  // Paginação da lista (uma fila só, ordenada por prioridade — não mais por coluna)
+  const [listLimit, setListLimit]       = useState(PAGE_SIZE)
 
   // Ações
   const [loading, setLoading]           = useState<string | null>(null)
@@ -180,10 +173,24 @@ export function AcolhimentoClient({
     return result
   }, [cases, search, filterDiscipulador, initialFilter])
 
-  const byStatus = (status: CaseStatus) =>
-    filtered
-      .filter(c => c.status === status)
-      .sort((a, b) => casePriority(a) - casePriority(b))
+  // Contagem por status pros chips — sempre reflete os filtros de busca/
+  // responsável/alerta, mas não o próprio chip de status selecionado (senão
+  // clicar num chip zeraria a contagem dos outros).
+  const statusCounts = useMemo(() => {
+    const counts: Record<CaseStatus, number> = { PENDENTE_MATRICULA: 0, EM_DISCIPULADO: 0, PAUSADO: 0, CONCLUIDO: 0 }
+    for (const c of filtered) counts[c.status] = (counts[c.status] ?? 0) + 1
+    return counts
+  }, [filtered])
+
+  // Fila única, ordenada por urgência (não mais por coluna) — o status vira
+  // uma etiqueta na linha, e um chip acima deixa focar num status só.
+  const sorted = useMemo(() => {
+    const base = statusFilter ? filtered.filter(c => c.status === statusFilter) : filtered
+    return [...base].sort((a, b) => casePriority(a) - casePriority(b))
+  }, [filtered, statusFilter])
+
+  const visible = sorted.slice(0, listLimit)
+  const hasMore = sorted.length > listLimit
 
   // ── Ações API ──
 
@@ -246,10 +253,11 @@ export function AcolhimentoClient({
 
   // ── Filtros ativos ──
 
-  const hasActiveFilters = !!search || !!filterDiscipulador || !!initialFilter
+  const hasActiveFilters = !!search || !!filterDiscipulador || !!initialFilter || !!statusFilter
   function clearFilters() {
     setSearch('')
     setFilterDiscipulador('')
+    setStatusFilter('')
     router.push('/acolhimento')
   }
 
@@ -312,58 +320,62 @@ export function AcolhimentoClient({
 
       {error && <Alert type="error" className="mb-4">{error}</Alert>}
 
-      {/* ── Kanban ────────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {COLUMNS.map(({ status, label, color }) => {
-          const colCases   = byStatus(status)
-          const limit      = pageLimits[status]
-          const visible    = colCases.slice(0, limit)
-          const hasMore    = colCases.length > limit
+      {/* ── Chips de status ──────────────────────────────────────────────────────
+          Filtro leve, não coluna física — a lista continua uma fila só,
+          ordenada por urgência. Clicar de novo no chip ativo desmarca. */}
+      <div className="mb-4 flex flex-wrap items-center gap-1.5">
+        <button
+          onClick={() => setStatusFilter('')}
+          className={cn(
+            'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+            !statusFilter ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+          )}
+        >
+          Todos <span className="ml-1 tabular-nums">{filtered.length}</span>
+        </button>
+        {STATUS_ORDER.map(status => (
+          <button
+            key={status}
+            onClick={() => setStatusFilter(prev => prev === status ? '' : status)}
+            className={cn(
+              'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+              statusFilter === status ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+            )}
+          >
+            {CASE_STATUS_LABEL[status]} <span className="ml-1 tabular-nums">{statusCounts[status]}</span>
+          </button>
+        ))}
+      </div>
 
-          return (
-            <div key={status} className="flex flex-col gap-3">
-              {/* Header da coluna */}
-              <div className={`flex items-center justify-between rounded-t-lg border-t-4 bg-white px-3 py-2 shadow-sm ${color}`}>
-                <span className="font-semibold text-gray-800 text-sm">{label}</span>
-                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-bold text-gray-700">
-                  {colCases.length}
-                </span>
-              </div>
+      {/* ── Fila ordenada por urgência ───────────────────────────────────────── */}
+      <div className="flex flex-col gap-2">
+        {visible.length === 0 && (
+          <div className="rounded-lg border border-dashed border-gray-200 py-10 text-center text-sm text-gray-400">
+            Nenhum caso encontrado
+          </div>
+        )}
 
-              {/* Cards */}
-              <div className="flex flex-col gap-2 min-h-24">
-                {visible.length === 0 && (
-                  <div className="rounded-lg border border-dashed border-gray-200 py-6 text-center text-sm text-gray-400">
-                    Nenhum
-                  </div>
-                )}
+        {visible.map(c => (
+          <CaseRow
+            key={c.id}
+            c={c}
+            loading={loading}
+            canManage={canManage}
+            onAssign={() => { setAssignCaseId(c.id); setAssignedTo(c.assigned_to ?? '') }}
+            onContact={() => { setContactCaseId(c.id); setContactOutcome('ACEITOU_FBV'); setContactNote('') }}
+            onPause={() => doAction(c.id, 'pause')}
+            onResume={() => doAction(c.id, 'resume')}
+          />
+        ))}
 
-                {visible.map(c => (
-                  <CaseCard
-                    key={c.id}
-                    c={c}
-                    status={status}
-                    loading={loading}
-                    canManage={canManage}
-                    onAssign={() => { setAssignCaseId(c.id); setAssignedTo(c.assigned_to ?? '') }}
-                    onContact={() => { setContactCaseId(c.id); setContactOutcome('ACEITOU_FBV'); setContactNote('') }}
-                    onPause={() => doAction(c.id, 'pause')}
-                    onResume={() => doAction(c.id, 'resume')}
-                  />
-                ))}
-
-                {hasMore && (
-                  <button
-                    onClick={() => setPageLimits(prev => ({ ...prev, [status]: prev[status] + PAGE_SIZE }))}
-                    className="mt-1 rounded-lg border border-dashed border-gray-300 py-2 text-xs text-gray-500 hover:bg-gray-50"
-                  >
-                    + {colCases.length - limit} mais
-                  </button>
-                )}
-              </div>
-            </div>
-          )
-        })}
+        {hasMore && (
+          <button
+            onClick={() => setListLimit(prev => prev + PAGE_SIZE)}
+            className="mt-1 rounded-lg border border-dashed border-gray-300 py-2 text-xs text-gray-500 hover:bg-gray-50"
+          >
+            + {sorted.length - listLimit} mais
+          </button>
+        )}
       </div>
 
       {/* ── Dialog: atribuir responsável ──────────────────────────────────────── */}
@@ -446,11 +458,10 @@ export function AcolhimentoClient({
   )
 }
 
-// ─── Card de case ──────────────────────────────────────────────────────────────
+// ─── Linha de case ─────────────────────────────────────────────────────────────
 
-interface CaseCardProps {
+interface CaseRowProps {
   c: CaseListItem
-  status: CaseStatus
   loading: string | null
   canManage: boolean
   onAssign: () => void
@@ -459,7 +470,8 @@ interface CaseCardProps {
   onResume: () => void
 }
 
-function CaseCard({ c, status, loading, canManage, onAssign, onContact, onPause, onResume }: CaseCardProps) {
+function CaseRow({ c, loading, canManage, onAssign, onContact, onPause, onResume }: CaseRowProps) {
+  const status = c.status
   const crit = getAttendanceCriticality(c.attendance_rate)
   const days = daysSinceContact(c.last_contact_at)
   const waitDays = status === 'PENDENTE_MATRICULA' ? daysSince(c.welcomed_on ?? c.created_at) : null
@@ -467,84 +479,77 @@ function CaseCard({ c, status, loading, canManage, onAssign, onContact, onPause,
 
   return (
     <div className={cn(
-      'rounded-lg border bg-white p-3 shadow-sm transition-shadow hover:shadow-md',
+      'flex flex-col gap-2 rounded-lg border bg-white p-3 shadow-sm transition-shadow hover:shadow-md sm:flex-row sm:items-center sm:justify-between',
       crit === 'critical' && status === 'EM_DISCIPULADO' ? 'border-red-200' : 'border-gray-200'
     )}>
-      {/* Nome + alerta de frequência */}
-      <div className="mb-1.5 flex items-start justify-between gap-2">
-        <Link
-          href={`/discipulandos/${c.disciple_id}`}
-          className="font-medium text-blue-600 hover:underline text-sm leading-tight"
-        >
-          {c.disciples?.full_name}
-        </Link>
-        <div className="flex shrink-0 items-center gap-1">
+      {/* Nome + status + sinais de urgência + metadados */}
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Link
+            href={`/discipulandos/${c.disciple_id}`}
+            className="font-medium text-blue-600 hover:underline text-sm leading-tight"
+          >
+            {c.disciples?.full_name}
+          </Link>
+          <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-medium', CASE_STATUS_COLOR[status])}>
+            {CASE_STATUS_LABEL[status]}
+          </span>
           {crit === 'critical' && status === 'EM_DISCIPULADO' && (
             <span title="Frequência crítica (<50%)">
-              <AlertTriangle className="h-4 w-4 text-red-500" />
+              <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
             </span>
           )}
-          {contactWarning && status !== 'CONCLUIDO' && (
+          {contactWarning && (
             <span title={days === null ? 'Nunca houve contato' : `Último contato há ${days} dias`}>
-              <PhoneCall className="h-4 w-4 text-amber-500" />
+              <PhoneCall className="h-3.5 w-3.5 text-amber-500" />
             </span>
           )}
         </div>
+
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
+          {(c as any).profiles ? (
+            <span className="text-gray-500 flex items-center gap-0.5">
+              <UserCheck className="h-3 w-3" />
+              {(c as any).profiles.name}
+            </span>
+          ) : (
+            <span className="text-amber-600 font-medium">Sem responsável</span>
+          )}
+
+          {status === 'EM_DISCIPULADO' && (
+            <span className={cn(
+              'font-medium',
+              crit === 'ok' ? 'text-green-700' : crit === 'warning' ? 'text-yellow-700' : 'text-red-700'
+            )}>
+              Freq: {c.attendance_rate.toFixed(0)}%
+            </span>
+          )}
+
+          {status === 'PENDENTE_MATRICULA' && waitDays !== null && (
+            <span className={cn(
+              'flex items-center gap-0.5',
+              waitDays > 14 ? 'text-amber-600 font-medium' : 'text-gray-400'
+            )}>
+              <Clock className="h-3 w-3" />
+              {waitDays === 0 ? 'Acolhido hoje' : `${waitDays}d aguardando matrícula`}
+            </span>
+          )}
+
+          <span className="text-gray-400">
+            {days === null ? 'Sem contato registrado' : days === 0 ? 'Contato hoje' : `Contato há ${days}d`}
+          </span>
+        </div>
       </div>
 
-      {/* Responsável */}
-      {(c as any).profiles ? (
-        <p className="text-xs text-gray-500 mb-1 flex items-center gap-0.5">
-          <UserCheck className="h-3 w-3" />
-          {(c as any).profiles.name}
-        </p>
-      ) : (
-        <p className="text-xs text-amber-600 mb-1 font-medium">Sem responsável</p>
-      )}
-
-      {/* Frequência (Em Discipulado) */}
-      {status === 'EM_DISCIPULADO' && (
-        <p className={cn(
-          'text-xs font-medium mb-1',
-          crit === 'ok' ? 'text-green-700' : crit === 'warning' ? 'text-yellow-700' : 'text-red-700'
-        )}>
-          Freq: {c.attendance_rate.toFixed(0)}%
-        </p>
-      )}
-
-      {/* Tempo em espera (Pendente de Matrícula) */}
-      {status === 'PENDENTE_MATRICULA' && waitDays !== null && (
-        <p className={cn(
-          'text-xs mb-1 flex items-center gap-0.5',
-          waitDays > 14 ? 'text-amber-600 font-medium' : 'text-gray-400'
-        )}>
-          <Clock className="h-3 w-3" />
-          {waitDays === 0 ? 'Acolhido hoje' : `${waitDays}d aguardando matrícula`}
-        </p>
-      )}
-
-      {/* Último contato */}
-      {status !== 'CONCLUIDO' && (
-        <p className="text-xs text-gray-400 mb-1.5">
-          {days === null
-            ? 'Sem contato registrado'
-            : days === 0
-              ? 'Contato hoje'
-              : `Contato há ${days}d`}
-        </p>
-      )}
-
       {/* Ações */}
-      {canManage && status !== 'CONCLUIDO' && (
-        <div className="mt-2 flex flex-wrap gap-1">
-          {['PENDENTE_MATRICULA', 'EM_DISCIPULADO', 'PAUSADO'].includes(status) && (
-            <button
-              onClick={onAssign}
-              className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-200"
-            >
-              Atribuir
-            </button>
-          )}
+      {canManage && (
+        <div className="flex flex-wrap gap-1 shrink-0">
+          <button
+            onClick={onAssign}
+            className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-200"
+          >
+            Atribuir
+          </button>
           <button
             onClick={onContact}
             disabled={loading === c.id}
