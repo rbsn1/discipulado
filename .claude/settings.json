@@ -23,7 +23,8 @@
       "Bash(bash -lc 'command -v nvm; ls ~/.nvm/versions/node 2>/dev/null; ls /usr/local/n/versions/node 2>/dev/null; which -a node; echo $PATH')",
       "Bash(mkdir -p /tmp/claude-1000/-home-robsonsouza-Documents-discipulado/365f98e7-0415-4e16-8ddb-e778e765036d/scratchpad/db)",
       "Bash(npm init *)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(xargs -I{} sh -c 'echo ==={}===; cat {}')"
     ],
     "additionalDirectories": [
       "/tmp"

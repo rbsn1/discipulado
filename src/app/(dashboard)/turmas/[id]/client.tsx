@@ -72,6 +72,7 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, currentProfil
   const [showNewLesson, setShowNewLesson] = useState(false)
   const [showAttendance, setShowAttendance] = useState<string | null>(null)
   const [attendanceItems, setAttendanceItems] = useState<Record<string, AttendanceStatus>>({})
+  const [attendanceIsNew, setAttendanceIsNew] = useState(true)
   const [lessonDate, setLessonDate] = useState('')
   const [lessonTopic, setLessonTopic] = useState('')
   const [lessonModule, setLessonModule] = useState('')
@@ -201,10 +202,18 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, currentProfil
       const existing: Array<{ disciple_id: string; status: AttendanceStatus }> = await res.json()
       const map: Record<string, AttendanceStatus> = {}
       existing.forEach(a => { map[a.disciple_id] = a.status })
-      // Preenche falta para quem não tem status
-      activeEnrollments.forEach(e => {
-        if (!map[e.disciple_id]) map[e.disciple_id] = 'FALTA'
-      })
+      // Só completa com falta padrão quem falta marcar na PRIMEIRA vez que a
+      // chamada dessa aula é feita. Reabrir uma chamada já salva não pode
+      // inserir registro novo pra quem não fazia parte dela (ex.: aluno
+      // matriculado depois daquela aula) — isso inflava a frequência de gente
+      // que nem estava na turma naquele dia, só porque está ativa hoje.
+      const isNew = existing.length === 0
+      if (isNew) {
+        activeEnrollments.forEach(e => {
+          if (!map[e.disciple_id]) map[e.disciple_id] = 'FALTA'
+        })
+      }
+      setAttendanceIsNew(isNew)
       setAttendanceItems(map)
     }
   }
@@ -494,7 +503,7 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, currentProfil
       <Dialog open={!!showAttendance} onClose={() => setShowAttendance(null)} title="Chamada" className="max-w-sm">
         <div className="flex flex-col gap-3">
           <p className="text-sm text-gray-500">Clique no nome para alternar entre Presente / Falta / Justificada</p>
-          {activeEnrollments.map(e => {
+          {(attendanceIsNew ? activeEnrollments : activeEnrollments.filter(e => e.disciple_id in attendanceItems)).map(e => {
             const status = attendanceItems[e.disciple_id] ?? 'FALTA'
             return (
               <button
