@@ -86,7 +86,7 @@ export function DisciplesClientPage({
         </div>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4" />
-          Novo discipulando
+          Nova vida
         </Button>
       </div>
 
@@ -187,7 +187,7 @@ export function DisciplesClientPage({
         </table>
       </div>
 
-      <Dialog open={showForm} onClose={() => setShowForm(false)} title="Novo Discipulando">
+      <Dialog open={showForm} onClose={() => setShowForm(false)} title="Nova Vida">
         <DiscipleForm
           worshipServices={worshipServices}
           acolhedores={discipuladores}
