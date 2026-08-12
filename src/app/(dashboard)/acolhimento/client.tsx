@@ -39,7 +39,7 @@ import { differenceInDays, parseISO } from 'date-fns'
 
 // Ordem do funil — usada nos chips de filtro por status (Jornada só trabalha
 // status ativos; Concluído não aparece mais aqui, ver acolhimento/page.tsx).
-const STATUS_ORDER: CaseStatus[] = ['PENDENTE_MATRICULA', 'EM_DISCIPULADO', 'PAUSADO']
+const STATUS_ORDER: CaseStatus[] = ['EM_ACOLHIMENTO', 'PENDENTE_MATRICULA', 'EM_DISCIPULADO', 'PAUSADO']
 
 const CONTACT_OUTCOMES: { value: ContactOutcome; label: string }[] = [
   { value: 'ACEITOU_FBV',     label: 'Aceitou participar da FBV'      },
@@ -177,7 +177,7 @@ export function AcolhimentoClient({
   // responsável/alerta, mas não o próprio chip de status selecionado (senão
   // clicar num chip zeraria a contagem dos outros).
   const statusCounts = useMemo(() => {
-    const counts: Record<CaseStatus, number> = { PENDENTE_MATRICULA: 0, EM_DISCIPULADO: 0, PAUSADO: 0, CONCLUIDO: 0 }
+    const counts: Record<CaseStatus, number> = { EM_ACOLHIMENTO: 0, PENDENTE_MATRICULA: 0, EM_DISCIPULADO: 0, PAUSADO: 0, CONCLUIDO: 0 }
     for (const c of filtered) counts[c.status] = (counts[c.status] ?? 0) + 1
     return counts
   }, [filtered])
@@ -474,7 +474,9 @@ function CaseRow({ c, loading, canManage, onAssign, onContact, onPause, onResume
   const status = c.status
   const crit = getAttendanceCriticality(c.attendance_rate)
   const days = daysSinceContact(c.last_contact_at)
-  const waitDays = status === 'PENDENTE_MATRICULA' ? daysSince(c.welcomed_on ?? c.created_at) : null
+  const waitDays = (status === 'EM_ACOLHIMENTO' || status === 'PENDENTE_MATRICULA')
+    ? daysSince(c.welcomed_on ?? c.created_at)
+    : null
   const contactWarning = days === null || days > 30
 
   return (
@@ -525,13 +527,17 @@ function CaseRow({ c, loading, canManage, onAssign, onContact, onPause, onResume
             </span>
           )}
 
-          {status === 'PENDENTE_MATRICULA' && waitDays !== null && (
+          {waitDays !== null && (
             <span className={cn(
               'flex items-center gap-0.5',
               waitDays > 14 ? 'text-amber-600 font-medium' : 'text-gray-400'
             )}>
               <Clock className="h-3 w-3" />
-              {waitDays === 0 ? 'Acolhido hoje' : `${waitDays}d aguardando matrícula`}
+              {waitDays === 0
+                ? 'Acolhido hoje'
+                : status === 'EM_ACOLHIMENTO'
+                  ? `${waitDays}d aguardando Festa de Boas Vindas`
+                  : `${waitDays}d aguardando matrícula`}
             </span>
           )}
 

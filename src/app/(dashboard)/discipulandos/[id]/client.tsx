@@ -28,9 +28,7 @@ import {
 import {
   User,
   Phone,
-  Mail,
   Calendar,
-  MapPin,
   Church,
   Edit2,
   PlayCircle,
@@ -300,8 +298,12 @@ export function DiscipleDetailClient({
 
       {error && <Alert type="error" className="mb-4">{error}</Alert>}
 
-      {/* Aviso: aguardando confraternização */}
-      {activeCase?.status === 'PENDENTE_MATRICULA' && !hasAttendedConfraternizacao && (
+      {/* Aviso: aguardando Festa de Boas Vindas. EM_ACOLHIMENTO é o caso normal
+          daqui pra frente; o check extra por PENDENTE_MATRICULA sem presença
+          cobre cases antigos, criados antes dessa mudança, que não foram
+          migrados retroativamente. */}
+      {(activeCase?.status === 'EM_ACOLHIMENTO' ||
+        (activeCase?.status === 'PENDENTE_MATRICULA' && !hasAttendedConfraternizacao)) && (
         <Alert type="warning" className="mb-4">
           <AlertCircle className="inline h-4 w-4 mr-1" />
           Aguardando participação em uma Festa de Boas Vindas para liberar a matrícula em turma.
@@ -332,10 +334,6 @@ export function DiscipleDetailClient({
                   <dd className="font-medium">{disciple.phone ?? '—'}</dd>
                 </div>
                 <div>
-                  <dt className="text-gray-500 flex items-center gap-1"><Mail className="h-3.5 w-3.5" />E-mail</dt>
-                  <dd className="font-medium">{disciple.email ?? '—'}</dd>
-                </div>
-                <div>
                   <dt className="text-gray-500 flex items-center gap-1"><Calendar className="h-3.5 w-3.5" />Nascimento</dt>
                   <dd className="font-medium">{formatDate(disciple.birth_date)}</dd>
                 </div>
@@ -344,16 +342,8 @@ export function DiscipleDetailClient({
                   <dd className="font-medium">{formatDate(disciple.conversion_date)}</dd>
                 </div>
                 <div>
-                  <dt className="text-gray-500">Origem</dt>
-                  <dd className="font-medium">{disciple.origin ?? '—'}</dd>
-                </div>
-                <div>
                   <dt className="text-gray-500 flex items-center gap-1"><Church className="h-3.5 w-3.5" />Culto de origem</dt>
                   <dd className="font-medium">{disciple.worship_services?.name ?? '—'}</dd>
-                </div>
-                <div>
-                  <dt className="text-gray-500 flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />Endereço</dt>
-                  <dd className="font-medium">{disciple.address ?? '—'}</dd>
                 </div>
               </dl>
               {disciple.notes && (

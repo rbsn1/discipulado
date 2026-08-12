@@ -24,7 +24,7 @@ export default async function AcolhimentoPage({
   const [allCases, discipuladores, disciples] = await Promise.all([
     getCases(profile.congregation_id, {
       search,
-      status: ['PENDENTE_MATRICULA', 'EM_DISCIPULADO', 'PAUSADO'],
+      status: ['EM_ACOLHIMENTO', 'PENDENTE_MATRICULA', 'EM_DISCIPULADO', 'PAUSADO'],
     }),
     getProfilesByCongregation(profile.congregation_id),
     getDisciplesLite(profile.congregation_id),

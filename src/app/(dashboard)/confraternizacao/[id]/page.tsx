@@ -18,7 +18,7 @@ export default async function EventDetailPage({
   const [event, activeCases, attendedCaseIds, acceptedFbvCaseIds, shifts] = await Promise.all([
     getEventById(id).catch(() => null),
     getCases(profile.congregation_id, {
-      status: ['PENDENTE_MATRICULA', 'EM_DISCIPULADO', 'PAUSADO'],
+      status: ['EM_ACOLHIMENTO', 'PENDENTE_MATRICULA', 'EM_DISCIPULADO', 'PAUSADO'],
     }),
     getAttendedCaseIds(profile.congregation_id),
     getAcceptedFbvCaseIds(profile.congregation_id),

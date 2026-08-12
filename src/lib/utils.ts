@@ -27,6 +27,7 @@ export function formatDateTime(date: string | null | undefined): string {
 }
 
 export const CASE_STATUS_LABEL: Record<CaseStatus, string> = {
+  EM_ACOLHIMENTO: 'Em Acolhimento',
   PENDENTE_MATRICULA: 'Pendente de Matrícula',
   EM_DISCIPULADO: 'Em Discipulado',
   PAUSADO: 'Pausado',
@@ -34,6 +35,7 @@ export const CASE_STATUS_LABEL: Record<CaseStatus, string> = {
 }
 
 export const CASE_STATUS_COLOR: Record<CaseStatus, string> = {
+  EM_ACOLHIMENTO: 'bg-rose-100 text-rose-800',
   PENDENTE_MATRICULA: 'bg-yellow-100 text-yellow-800',
   EM_DISCIPULADO: 'bg-blue-100 text-blue-800',
   PAUSADO: 'bg-gray-100 text-gray-800',

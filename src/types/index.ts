@@ -10,6 +10,7 @@ export type UserRole =
   | 'SM_DISCIPULADO'
 
 export type CaseStatus =
+  | 'EM_ACOLHIMENTO'
   | 'PENDENTE_MATRICULA'
   | 'EM_DISCIPULADO'
   | 'PAUSADO'

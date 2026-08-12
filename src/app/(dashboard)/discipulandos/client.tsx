@@ -146,7 +146,6 @@ export function DisciplesClientPage({
             <tr className="border-b border-gray-200 bg-gray-50">
               <th className="px-4 py-3 text-left font-medium text-gray-600">Nome</th>
               <th className="px-4 py-3 text-left font-medium text-gray-600">Telefone</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-600">Origem</th>
               <th className="px-4 py-3 text-left font-medium text-gray-600">Culto</th>
               <th className="px-4 py-3 text-left font-medium text-gray-600">Status</th>
               <th className="px-4 py-3 text-left font-medium text-gray-600">Turma</th>
@@ -157,7 +156,7 @@ export function DisciplesClientPage({
           <tbody className="divide-y divide-gray-100">
             {disciples.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
                   Nenhuma vida acolhida encontrada
                 </td>
               </tr>
@@ -173,7 +172,6 @@ export function DisciplesClientPage({
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-gray-600">{d.phone ?? '—'}</td>
-                  <td className="px-4 py-3 text-gray-600">{d.origin ?? '—'}</td>
                   <td className="px-4 py-3 text-gray-600">{d.worship_services?.name ?? '—'}</td>
                   <td className="px-4 py-3">
                     {activeCase ? (

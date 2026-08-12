@@ -14,7 +14,9 @@
       "Bash(echo \"---dns exit:$?\")",
       "Bash(timeout 5 bash -c \"echo > /dev/tcp/8.8.8.8/443\")",
       "Bash(timeout 5 bash -c \"echo > /dev/tcp/db.pxgwkkinguddibvhdlnn.supabase.co/6543\")",
-      "Bash(timeout 5 curl -sv --max-time 5 https://db.pxgwkkinguddibvhdlnn.supabase.co:443)"
+      "Bash(timeout 5 curl -sv --max-time 5 https://db.pxgwkkinguddibvhdlnn.supabase.co:443)",
+      "Bash(grep -v \"^$\")",
+      "Bash(sed -n '/^-- 021_em_acolhimento_logic.sql/,$p' /home/robsonsouza/Documents/discipulado/supabase/migrations/000_run_all.sql)"
     ]
   }
 }
