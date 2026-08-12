@@ -15,7 +15,7 @@ export default async function AcolhimentoPage({
 
   const { status, filter, search, discipulador } = await searchParams
 
-  const [cases, discipuladores, disciples] = await Promise.all([
+  const [allCases, discipuladores, disciples] = await Promise.all([
     getCases(profile.congregation_id, { search }),
     getProfilesByCongregation(profile.congregation_id),
     getDisciplesLite(profile.congregation_id),
@@ -25,8 +25,19 @@ export default async function AcolhimentoPage({
     p => ['DISCIPULADOR', 'ADMIN_DISCIPULADO', 'SM_DISCIPULADO'].includes(p.role) && p.is_active
   )
 
-  // Discipulandos sem case ativo para o modal de iniciar acolhimento
-  const casedDiscipleIds = new Set(cases.map(c => c.disciple_id))
+  // Acolhedor só vê a fila pessoal dele: casos já atribuídos a ele + os que
+  // ainda não têm responsável (pra poder se atribuir). Outros papéis (SM,
+  // Admin) continuam vendo a fila inteira, pra poder distribuir os casos.
+  // Restrição só nesta tela — /discipulandos e o resto do app continuam
+  // mostrando todos os cases da congregação pra qualquer papel com acesso.
+  const cases = profile.role === 'DISCIPULADOR'
+    ? allCases.filter(c => !c.assigned_to || c.assigned_to === profile.id)
+    : allCases
+
+  // Discipulandos sem case ativo para o modal de iniciar acolhimento — usa a
+  // lista COMPLETA de cases (não a filtrada acima), senão um discipulando já
+  // atribuído a outro acolhedor apareceria aqui como "sem case" por engano.
+  const casedDiscipleIds = new Set(allCases.map(c => c.disciple_id))
   const disciplesSemCase = disciples.filter(d => !casedDiscipleIds.has(d.id))
 
   return (

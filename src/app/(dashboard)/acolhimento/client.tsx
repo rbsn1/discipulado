@@ -257,7 +257,12 @@ export function AcolhimentoClient({
     <>
       {/* ── Cabeçalho ─────────────────────────────────────────────────────────── */}
       <div className="mb-4 md:mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <h1 className="text-xl md:text-2xl font-bold text-gray-900">Fila de Acolhimento</h1>
+        <div>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Fila de Acolhimento</h1>
+          {currentRole === 'DISCIPULADOR' && (
+            <p className="text-xs text-gray-500 mt-0.5">Mostrando seus acolhidos e os que ainda não têm responsável.</p>
+          )}
+        </div>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           {/* Busca */}
@@ -268,19 +273,23 @@ export function AcolhimentoClient({
             className="w-full sm:max-w-xs h-9"
           />
 
-          {/* Filtro por discipulador */}
-          <select
-            value={filterDiscipulador}
-            onChange={e => setFilterDiscipulador(e.target.value)}
-            className="h-9 w-full sm:w-auto rounded-lg border border-gray-200 bg-white px-3 text-base sm:text-sm text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-            aria-label="Filtrar por acolhedor"
-          >
-            <option value="">Todos os acolhedores</option>
-            <option value="__none__">Sem responsável</option>
-            {discipuladores.map(d => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-          </select>
+          {/* Filtro por discipulador — some pro Acolhedor, já que a fila dele
+              já está restrita a "meus + sem responsável"; filtrar por outro
+              acolhedor nunca traria resultado. */}
+          {currentRole !== 'DISCIPULADOR' && (
+            <select
+              value={filterDiscipulador}
+              onChange={e => setFilterDiscipulador(e.target.value)}
+              className="h-9 w-full sm:w-auto rounded-lg border border-gray-200 bg-white px-3 text-base sm:text-sm text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              aria-label="Filtrar por acolhedor"
+            >
+              <option value="">Todos os acolhedores</option>
+              <option value="__none__">Sem responsável</option>
+              {discipuladores.map(d => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+          )}
 
           {hasActiveFilters && (
             <button
