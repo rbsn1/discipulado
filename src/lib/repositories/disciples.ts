@@ -4,15 +4,13 @@ import type { Disciple, CreateDiscipleInput, DiscipleListItem, CaseStatus } from
 export interface DisciplesFilters {
   search?: string
   status?: CaseStatus | 'SEM_CASE'
-  classId?: string
-  assignedTo?: string
   worshipServiceId?: string
 }
 
 // Só os campos renderizados/filtráveis na tabela de /discipulandos (ver DiscipleListItem).
-// Status/turma/responsável são filtrados em memória após a busca (mesmo padrão já usado
-// em getCases pra filtrar por texto em dados de tabela relacionada) — evita depender da
-// sintaxe de filtro em recurso aninhado do PostgREST, que é frágil pra "sem case".
+// Status/culto são filtrados em memória após a busca (mesmo padrão já usado em getCases
+// pra filtrar por texto em dados de tabela relacionada) — evita depender da sintaxe de
+// filtro em recurso aninhado do PostgREST, que é frágil pra "sem case".
 export async function getDisciples(
   congregationId: string,
   filters?: DisciplesFilters
@@ -44,16 +42,6 @@ export async function getDisciples(
         ? !activeCase
         : activeCase?.status === filters.status
     })
-  }
-
-  if (filters?.classId) {
-    result = result.filter(d =>
-      d.class_enrollments?.some(e => e.active && e.class_id === filters.classId)
-    )
-  }
-
-  if (filters?.assignedTo) {
-    result = result.filter(d => d.discipleship_cases?.[0]?.assigned_to === filters.assignedTo)
   }
 
   if (filters?.worshipServiceId) {

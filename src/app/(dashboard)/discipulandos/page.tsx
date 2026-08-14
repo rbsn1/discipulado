@@ -1,7 +1,6 @@
 import { getCurrentProfile, getProfilesByCongregation } from '@/lib/repositories/profiles'
 import { getDisciples } from '@/lib/repositories/disciples'
 import { getWorshipServices } from '@/lib/repositories/worship-services'
-import { getClasses } from '@/lib/repositories/classes'
 import { redirect } from 'next/navigation'
 import { DisciplesClientPage } from './client'
 import type { CaseStatus } from '@/types'
@@ -9,22 +8,19 @@ import type { CaseStatus } from '@/types'
 export default async function DiscipulandosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; status?: string; turma?: string; responsavel?: string; culto?: string }>
+  searchParams: Promise<{ search?: string; status?: string; culto?: string }>
 }) {
   const profile = await getCurrentProfile()
   if (!profile?.congregation_id) redirect('/painel')
 
-  const { search, status, turma, responsavel, culto } = await searchParams
-  const [disciples, worshipServices, classes, profiles] = await Promise.all([
+  const { search, status, culto } = await searchParams
+  const [disciples, worshipServices, profiles] = await Promise.all([
     getDisciples(profile.congregation_id, {
       search,
       status: status as CaseStatus | 'SEM_CASE' | undefined,
-      classId: turma,
-      assignedTo: responsavel,
       worshipServiceId: culto,
     }),
     getWorshipServices(profile.congregation_id, { activeOnly: true }),
-    getClasses(profile.congregation_id, { activeOnly: true }),
     getProfilesByCongregation(profile.congregation_id),
   ])
 
@@ -51,11 +47,8 @@ export default async function DiscipulandosPage({
         currentRole={profile.role}
         search={search}
         status={status}
-        turma={turma}
-        responsavel={responsavel}
         culto={culto}
         worshipServices={worshipServices}
-        classes={classes}
         discipuladores={discipuladores}
       />
     </div>

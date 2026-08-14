@@ -10,7 +10,7 @@ import { Dialog } from '@/components/ui/dialog'
 import { DiscipleForm } from '@/components/features/disciples/disciple-form'
 import { CASE_STATUS_LABEL, CASE_STATUS_COLOR, formatDate, cn } from '@/lib/utils'
 import { Plus, Search, X, CalendarDays, Church } from 'lucide-react'
-import type { DiscipleListItem, CreateDiscipleInput, WorshipService, Class, Profile, CaseStatus, UserRole } from '@/types'
+import type { DiscipleListItem, CreateDiscipleInput, WorshipService, Profile, CaseStatus, UserRole } from '@/types'
 
 interface Props {
   disciples: DiscipleListItem[]
@@ -19,11 +19,8 @@ interface Props {
   currentRole: UserRole
   search?: string
   status?: string
-  turma?: string
-  responsavel?: string
   culto?: string
   worshipServices: WorshipService[]
-  classes: Class[]
   discipuladores: Profile[]
 }
 
@@ -44,11 +41,8 @@ export function DisciplesClientPage({
   currentRole,
   search,
   status,
-  turma,
-  responsavel,
   culto,
   worshipServices,
-  classes,
   discipuladores,
 }: Props) {
   const router = useRouter()
@@ -71,12 +65,10 @@ export function DisciplesClientPage({
   }
 
   function applyFilters(overrides: Record<string, string | undefined>) {
-    const next = { search: searchValue, status, turma, responsavel, culto, ...overrides }
+    const next = { search: searchValue, status, culto, ...overrides }
     const params = new URLSearchParams()
     if (next.search) params.set('search', next.search)
     if (next.status) params.set('status', next.status)
-    if (next.turma) params.set('turma', next.turma)
-    if (next.responsavel) params.set('responsavel', next.responsavel)
     if (next.culto) params.set('culto', next.culto)
     router.push(`/discipulandos?${params.toString()}`)
   }
@@ -86,7 +78,7 @@ export function DisciplesClientPage({
     applyFilters({})
   }
 
-  const hasFilters = Boolean(status || turma || responsavel || culto)
+  const hasFilters = Boolean(status || culto)
 
   // Quantas vidas acolhidas (da lista atual, já com os filtros aplicados)
   // vieram de cada culto — pra quem responde por um culto conseguir prestar
@@ -249,24 +241,8 @@ export function DisciplesClientPage({
           options={STATUS_OPTIONS}
           className="sm:w-40"
         />
-        <Select
-          value={turma ?? ''}
-          onChange={e => applyFilters({ turma: e.target.value || undefined })}
-          placeholder="Turma"
-          options={classes.map(c => ({ value: c.id, label: c.name }))}
-          className="sm:w-40"
-        />
-        {currentRole !== 'DISCIPULADOR' && (
-          <Select
-            value={responsavel ?? ''}
-            onChange={e => applyFilters({ responsavel: e.target.value || undefined })}
-            placeholder="Responsável"
-            options={discipuladores.map(d => ({ value: d.id, label: d.name }))}
-            className="sm:w-40"
-          />
-        )}
         {hasFilters && (
-          <Button variant="outline" onClick={() => applyFilters({ status: undefined, turma: undefined, responsavel: undefined, culto: undefined })}>
+          <Button variant="outline" onClick={() => applyFilters({ status: undefined, culto: undefined })}>
             <X className="h-4 w-4" />
             Limpar
           </Button>
