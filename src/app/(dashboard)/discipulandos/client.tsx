@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -79,6 +79,24 @@ export function DisciplesClientPage({
 
   const hasFilters = Boolean(status || turma || responsavel)
 
+  // Quantas vidas acolhidas (da lista atual, já com os filtros aplicados)
+  // vieram de cada culto — pra quem responde por um culto conseguir prestar
+  // contas sem precisar contar linha por linha na tabela. Cultos sem
+  // ninguém ainda aparecem com 0, não somem da lista.
+  const cultoStats = useMemo(() => {
+    const counts = new Map<string, number>()
+    worshipServices.forEach(w => counts.set(w.name, 0))
+    let semCulto = 0
+    disciples.forEach(d => {
+      const name = d.worship_services?.name
+      if (name) counts.set(name, (counts.get(name) ?? 0) + 1)
+      else semCulto++
+    })
+    const entries = [...counts.entries()].map(([name, count]) => ({ name, count }))
+    if (semCulto > 0) entries.push({ name: 'Não informado', count: semCulto })
+    return entries
+  }, [disciples, worshipServices])
+
   return (
     <>
       <div className="mb-6 flex items-center justify-between">
@@ -94,6 +112,17 @@ export function DisciplesClientPage({
           Nova vida
         </Button>
       </div>
+
+      {cultoStats.length > 0 && (
+        <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {cultoStats.map(({ name, count }) => (
+            <div key={name} className="rounded-xl border border-gray-100 bg-white p-4 text-center shadow-sm">
+              <p className="text-2xl font-bold text-gray-900">{count}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{name}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="mb-4 flex flex-col gap-2 sm:flex-row">
         <form onSubmit={handleSearch} className="flex flex-1 gap-2">
