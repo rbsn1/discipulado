@@ -8,8 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Dialog } from '@/components/ui/dialog'
 import { DiscipleForm } from '@/components/features/disciples/disciple-form'
-import { CASE_STATUS_LABEL, CASE_STATUS_COLOR, formatDate } from '@/lib/utils'
-import { Plus, Search, X, CalendarDays } from 'lucide-react'
+import { CASE_STATUS_LABEL, CASE_STATUS_COLOR, formatDate, cn } from '@/lib/utils'
+import { Plus, Search, X, CalendarDays, Church } from 'lucide-react'
 import type { DiscipleListItem, CreateDiscipleInput, WorshipService, Class, Profile, CaseStatus, UserRole } from '@/types'
 
 interface Props {
@@ -112,6 +112,9 @@ export function DisciplesClientPage({
     return entries
   }, [disciples, worshipServices, cultoDate])
 
+  const cultoTotal = cultoStats.reduce((sum, c) => sum + c.count, 0)
+  const isToday = cultoDate === todayISO()
+
   return (
     <>
       <div className="mb-6 flex items-center justify-between">
@@ -129,46 +132,88 @@ export function DisciplesClientPage({
       </div>
 
       {cultoStats.length > 0 && (
-        <div className="mb-6">
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            <p className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
-              <CalendarDays className="h-4 w-4 text-gray-400" />
-              Vidas acolhidas por culto
-            </p>
-            <input
-              type="date"
-              value={cultoDate}
-              onChange={e => setCultoDate(e.target.value)}
-              className="h-8 rounded-lg border border-gray-200 bg-white px-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-            />
-            <button
-              type="button"
-              onClick={() => setCultoDate(todayISO())}
-              className="h-8 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-600 hover:bg-gray-50"
-            >
-              Hoje
-            </button>
-            {cultoDate && (
+        <div className="mb-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50">
+                  <Church className="h-4 w-4 text-indigo-600" />
+                </span>
+                Vidas acolhidas por culto
+                <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700">
+                  {cultoTotal} {cultoTotal === 1 ? 'vida' : 'vidas'}
+                </span>
+              </p>
+              <p className="mt-1.5 text-xs text-gray-500">
+                {cultoDate
+                  ? <>Prestação de contas de <strong className="text-gray-700">{formatDate(cultoDate)}</strong></>
+                  : 'Total acumulado — escolha um dia abaixo pra prestação de contas do culto'}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative">
+                <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="date"
+                  value={cultoDate}
+                  onChange={e => setCultoDate(e.target.value)}
+                  className="h-9 rounded-lg border border-gray-200 bg-white pl-8 pr-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                />
+              </div>
               <button
                 type="button"
-                onClick={() => setCultoDate('')}
-                className="h-8 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-600 hover:bg-gray-50"
+                onClick={() => setCultoDate(todayISO())}
+                className={cn(
+                  'h-9 rounded-lg border px-3 text-sm font-medium transition-colors',
+                  isToday
+                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                    : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                )}
               >
-                <X className="inline h-3.5 w-3.5 mr-1" />
-                Ver total geral
+                Hoje
               </button>
-            )}
-            <span className="text-xs text-gray-400">
-              {cultoDate ? `Mostrando acolhidos em ${formatDate(cultoDate)}` : 'Mostrando total acumulado — escolha um dia pra prestação de contas do culto'}
-            </span>
+              {cultoDate && (
+                <button
+                  type="button"
+                  onClick={() => setCultoDate('')}
+                  className="flex h-9 items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-600 hover:bg-gray-50"
+                >
+                  <X className="h-3.5 w-3.5" />
+                  Total geral
+                </button>
+              )}
+            </div>
           </div>
+
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {cultoStats.map(({ name, count }) => (
-              <div key={name} className="rounded-xl border border-gray-100 bg-white p-4 text-center shadow-sm">
-                <p className="text-2xl font-bold text-gray-900">{count}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{name}</p>
-              </div>
-            ))}
+            {cultoStats.map(({ name, count }) => {
+              const isUnspecified = name === 'Não informado'
+              const hasPeople = count > 0
+              return (
+                <div
+                  key={name}
+                  className={cn(
+                    'rounded-xl border p-4 text-center transition-colors',
+                    isUnspecified
+                      ? 'border-dashed border-gray-200 bg-gray-50'
+                      : hasPeople
+                        ? 'border-indigo-100 bg-indigo-50/50'
+                        : 'border-gray-100 bg-gray-50/50'
+                  )}
+                >
+                  <p className={cn(
+                    'text-3xl font-bold tabular-nums',
+                    isUnspecified ? 'text-gray-400' : hasPeople ? 'text-indigo-700' : 'text-gray-300'
+                  )}>
+                    {count}
+                  </p>
+                  <p className="mt-1 truncate text-xs font-medium text-gray-600" title={name}>
+                    {name}
+                  </p>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
