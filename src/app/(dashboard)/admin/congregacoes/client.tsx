@@ -325,7 +325,7 @@ export function CongregacoesClient({ congregations }: Props) {
               <p className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
                 Temas prontos
               </p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {THEME_PRESETS.map(p => {
                   const isActive =
                     editTarget.accentColor === p.accent &&

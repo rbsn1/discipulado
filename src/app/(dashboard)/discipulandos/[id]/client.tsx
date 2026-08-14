@@ -345,7 +345,7 @@ export function DiscipleDetailClient({
               <CardTitle>Dados Pessoais</CardTitle>
             </CardHeader>
             <CardContent>
-              <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+              <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
                 <div>
                   <dt className="text-gray-500 flex items-center gap-1"><Phone className="h-3.5 w-3.5" />Telefone</dt>
                   <dd className="font-medium">{disciple.phone ?? '—'}</dd>

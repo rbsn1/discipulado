@@ -31,7 +31,7 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
       )}
     >
       {title && (
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-4 sm:px-6">
           <h2 className="text-base font-semibold text-gray-900">{title}</h2>
           <button
             type="button"
@@ -42,7 +42,7 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
           </button>
         </div>
       )}
-      <div className="overflow-auto px-6 py-4">{children}</div>
+      <div className="overflow-auto px-4 py-4 sm:px-6">{children}</div>
     </dialog>
   )
 }

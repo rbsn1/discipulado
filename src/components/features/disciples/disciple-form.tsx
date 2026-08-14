@@ -54,7 +54,7 @@ export function DiscipleForm({ defaultValues, worshipServices, acolhedores, onSu
         placeholder="Nome da vida acolhida"
       />
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Input
           name="phone"
           label="Telefone"
@@ -70,7 +70,7 @@ export function DiscipleForm({ defaultValues, worshipServices, acolhedores, onSu
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Input
           name="conversion_date"
           label="Data de conversão"
