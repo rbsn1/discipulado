@@ -10,8 +10,9 @@ import { Dialog } from '@/components/ui/dialog'
 import { Alert } from '@/components/ui/alert'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ATTENDANCE_LABEL, ATTENDANCE_COLOR, formatDate, cn } from '@/lib/utils'
-import { Plus, ChevronRight, CalendarDays, Users, CheckCircle, X, Minus, Search, UserMinus, UserPlus, Pencil } from 'lucide-react'
+import { Plus, ChevronRight, CalendarDays, Users, CheckCircle, X, Minus, Search, UserMinus, UserPlus, Pencil, RotateCcw } from 'lucide-react'
 import type { Profile, ModuleTemplate, AttendanceStatus, CaseListItem } from '@/types'
+import type { ClassJustifiedAbsence } from '@/lib/repositories/classes'
 import { isAfter, isBefore, parseISO, startOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns'
 import { getAttendanceCriticality } from '@/lib/utils'
 
@@ -49,6 +50,7 @@ interface Props {
   }
   modules: ModuleTemplate[]
   eligibleCases: CaseListItem[]
+  justifiedAbsences: ClassJustifiedAbsence[]
   currentProfile: Profile
 }
 
@@ -64,11 +66,12 @@ const ATTENDANCE_BTN: Record<AttendanceStatus, string> = {
   JUSTIFICADA: 'bg-yellow-100 text-yellow-800 border-yellow-300',
 }
 
-export function TurmaDetailClient({ turma, modules, eligibleCases, currentProfile }: Props) {
+export function TurmaDetailClient({ turma, modules, eligibleCases, justifiedAbsences, currentProfile }: Props) {
   const router = useRouter()
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [lessonLoaded, setLessonLoaded] = useState(false)
-  const [activeTab, setActiveTab] = useState<'alunos' | 'aulas'>('alunos')
+  const [activeTab, setActiveTab] = useState<'alunos' | 'aulas' | 'reposicoes'>('alunos')
+  const [makeUpLoadingId, setMakeUpLoadingId] = useState<string | null>(null)
   const [showNewLesson, setShowNewLesson] = useState(false)
   const [editLesson, setEditLesson] = useState<Lesson | null>(null)
   const [showAttendance, setShowAttendance] = useState<string | null>(null)
@@ -136,9 +139,21 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, currentProfil
     }
   }
 
-  async function handleTabChange(tab: 'alunos' | 'aulas') {
+  async function handleTabChange(tab: 'alunos' | 'aulas' | 'reposicoes') {
     setActiveTab(tab)
     if (tab === 'aulas') await loadLessons()
+  }
+
+  async function toggleMadeUp(item: ClassJustifiedAbsence) {
+    setMakeUpLoadingId(item.id)
+    const res = await fetch(`/api/attendance-items/${item.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ made_up: !item.made_up }),
+    })
+    if (!res.ok) setError((await res.json()).error)
+    else router.refresh()
+    setMakeUpLoadingId(null)
   }
 
   async function handleUnenroll(e: Enrollment) {
@@ -291,7 +306,7 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, currentProfil
 
       {/* Tabs */}
       <div className="flex gap-1 rounded-lg border border-gray-200 bg-gray-100 p-1 mb-6 w-fit">
-        {(['alunos', 'aulas'] as const).map(tab => (
+        {(['alunos', 'aulas', 'reposicoes'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => handleTabChange(tab)}
@@ -301,7 +316,8 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, currentProfil
             )}
           >
             {tab === 'alunos' ? <><Users className="inline h-4 w-4 mr-1" />Alunos ({activeEnrollments.length})</> :
-              <><CalendarDays className="inline h-4 w-4 mr-1" />Aulas</>}
+              tab === 'aulas' ? <><CalendarDays className="inline h-4 w-4 mr-1" />Aulas</> :
+              <><RotateCcw className="inline h-4 w-4 mr-1" />Reposições ({justifiedAbsences.filter(j => !j.made_up).length})</>}
           </button>
         ))}
       </div>
@@ -500,6 +516,52 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, currentProfil
             </div>
           )}
         </>
+      )}
+
+      {activeTab === 'reposicoes' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Faltas justificadas</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {justifiedAbsences.length === 0 ? (
+              <p className="px-4 py-8 text-center text-sm text-gray-500">Nenhuma falta justificada registrada nesta turma</p>
+            ) : (
+              <ul className="divide-y divide-gray-50">
+                {justifiedAbsences.map(item => (
+                  <li key={item.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className={cn('font-medium text-sm', item.made_up ? 'text-gray-500 line-through' : 'text-gray-900')}>
+                        {item.disciples?.full_name ?? '—'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {item.lessons ? formatDate(item.lessons.date) : '—'}
+                        {item.lessons?.topic && ` · ${item.lessons.topic}`}
+                      </p>
+                    </div>
+                    {canManage ? (
+                      <Button
+                        size="sm"
+                        variant={item.made_up ? 'outline' : 'primary'}
+                        loading={makeUpLoadingId === item.id}
+                        onClick={() => toggleMadeUp(item)}
+                      >
+                        {item.made_up ? 'Reposta' : 'Marcar reposição'}
+                      </Button>
+                    ) : (
+                      <span className={cn(
+                        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
+                        item.made_up ? 'bg-gray-100 text-gray-600' : 'bg-yellow-100 text-yellow-800'
+                      )}>
+                        {item.made_up ? 'Reposta' : 'Pendente'}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {/* Modal: nova aula / editar aula */}

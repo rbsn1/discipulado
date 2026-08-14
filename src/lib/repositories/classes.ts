@@ -249,6 +249,29 @@ export async function getJustifiedAbsences(discipleId: string): Promise<Justifie
   return data as unknown as JustifiedAbsence[]
 }
 
+export interface ClassJustifiedAbsence {
+  id: string
+  made_up: boolean
+  disciples: { id: string; full_name: string } | null
+  lessons: { id: string; date: string; topic: string | null } | null
+}
+
+// Mesma ideia de getJustifiedAbsences, só que olhando pra turma inteira em vez
+// de um discipulando só — pra quem gerencia a turma ver de uma vez quem
+// precisa repor o quê, sem entrar na ficha de cada aluno.
+export async function getJustifiedAbsencesByClass(classId: string): Promise<ClassJustifiedAbsence[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('attendance_items')
+    .select('id, made_up, disciples ( id, full_name ), lessons!inner ( id, date, topic, class_id )')
+    .eq('status', 'JUSTIFICADA')
+    .eq('lessons.class_id', classId)
+    .order('date', { referencedTable: 'lessons', ascending: false })
+
+  if (error) throw error
+  return data as unknown as ClassJustifiedAbsence[]
+}
+
 export async function setAbsenceMadeUp(attendanceItemId: string, madeUp: boolean): Promise<void> {
   const supabase = await createClient()
   const { error } = await supabase
