@@ -147,13 +147,15 @@ export async function unenrollDisciple(
   if (error) throw error
 }
 
-// attendance_items(id) só pra saber se a chamada já foi feita (length > 0) —
-// usado pra decidir se a aula já "concluiu" e pode sumir da lista por padrão.
+// attendance_items(id, status) — o status permite montar o resumo de
+// presença/falta/justificada na própria lista de aulas, e decidir se a
+// chamada está de fato completa (todo mundo da turma marcado), não só se
+// tem pelo menos 1 registro.
 export async function getLessons(classId: string) {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('lessons')
-    .select('*, module_templates ( id, title ), attendance_items ( id )')
+    .select('*, module_templates ( id, title ), attendance_items ( id, status )')
     .eq('class_id', classId)
     .order('date', { ascending: false })
 

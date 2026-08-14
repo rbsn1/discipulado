@@ -28,7 +28,20 @@ interface Lesson {
   date: string
   topic: string | null
   module_templates?: { id: string; title: string } | null
-  attendance_items?: { id: string }[]
+  attendance_items?: { id: string; status: AttendanceStatus }[]
+}
+
+// Resumo de presença de uma aula + se a chamada está de fato completa —
+// "completa" exige que todo mundo do quadro atual da turma tenha status
+// marcado, não só que exista 1 registro (isso escondia chamada pela metade).
+function getLessonSummary(lesson: Lesson, rosterSize: number) {
+  const items = lesson.attendance_items ?? []
+  const present = items.filter(i => i.status === 'PRESENTE').length
+  const absent = items.filter(i => i.status === 'FALTA').length
+  const justified = items.filter(i => i.status === 'JUSTIFICADA').length
+  const total = items.length
+  const isComplete = rosterSize > 0 && total >= rosterSize
+  return { present, absent, justified, total, isComplete }
 }
 
 type Period = '' | 'semana' | 'mes' | 'ano'
@@ -77,6 +90,7 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, justifiedAbse
   const [showAttendance, setShowAttendance] = useState<string | null>(null)
   const [attendanceItems, setAttendanceItems] = useState<Record<string, AttendanceStatus>>({})
   const [attendanceIsNew, setAttendanceIsNew] = useState(true)
+  const [attendanceReadOnly, setAttendanceReadOnly] = useState(false)
   const [lessonDate, setLessonDate] = useState('')
   const [lessonTopic, setLessonTopic] = useState('')
   const [lessonModule, setLessonModule] = useState('')
@@ -89,6 +103,10 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, justifiedAbse
   const [addingId, setAddingId] = useState<string | null>(null)
 
   const canManage = ['ADMIN_DISCIPULADO', 'DISCIPULADOR', 'ADMIN_PLATAFORMA'].includes(currentProfile.role)
+  // Quem chega nessa página (Acolhedor é bloqueado antes, no page.tsx) já pode
+  // pelo menos VER a chamada, mesmo sem poder editar — Secretaria e SM
+  // Discipulado acompanham a turma mas hoje ficavam sem nenhuma visibilidade.
+  const canViewAttendance = ['ADMIN_DISCIPULADO', 'DISCIPULADOR', 'ADMIN_PLATAFORMA', 'SECRETARIA_DISCIPULADO', 'SM_DISCIPULADO'].includes(currentProfile.role)
   // Quem já concluiu o discipulado não conta mais como matriculado — a
   // matrícula em si não é desfeita (class_enrollments.active continua true),
   // só sai da fila de alunos ativos da turma.
@@ -104,9 +122,10 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, justifiedAbse
       })
 
   // ── Filtrar aulas por busca (tema) e/ou período / esconder concluídas por padrão ──
-  // Aula "concluída" (data já passou E chamada já foi feita) some da lista assim que
-  // processada — continua acessível buscando pelo tema ou limitando por semana/mês/ano,
-  // que trazem TODAS as aulas (concluídas ou não) dentro do período.
+  // Aula "concluída" (data já passou E chamada completa — todo mundo do quadro atual
+  // marcado, não só alguém) some da lista assim que processada — continua acessível
+  // buscando pelo tema ou limitando por semana/mês/ano, que trazem TODAS as aulas
+  // (concluídas ou não) dentro do período.
 
   const today = startOfDay(new Date())
   const lessonPeriodStart =
@@ -128,7 +147,7 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, justifiedAbse
         const matchesPeriod = !lessonPeriodStart || !lessonPeriodEnd || (!isBefore(lDate, lessonPeriodStart) && !isAfter(lDate, lessonPeriodEnd))
         return matchesSearch && matchesPeriod
       })
-    : lessons.filter(l => !((l.attendance_items?.length ?? 0) > 0 && isBefore(parseISO(l.date), today)))
+    : lessons.filter(l => !(getLessonSummary(l, activeEnrollments.length).isComplete && isBefore(parseISO(l.date), today)))
 
   async function loadLessons() {
     if (lessonLoaded) return
@@ -238,20 +257,22 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, justifiedAbse
     setLoading(false)
   }
 
-  async function openAttendance(lessonId: string) {
+  async function openAttendance(lessonId: string, readOnly = false) {
     setShowAttendance(lessonId)
+    setAttendanceReadOnly(readOnly)
     const res = await fetch(`/api/lessons/${lessonId}/attendance`)
     if (res.ok) {
       const existing: Array<{ disciple_id: string; status: AttendanceStatus }> = await res.json()
       const map: Record<string, AttendanceStatus> = {}
       existing.forEach(a => { map[a.disciple_id] = a.status })
       // Só completa com falta padrão quem falta marcar na PRIMEIRA vez que a
-      // chamada dessa aula é feita. Reabrir uma chamada já salva não pode
-      // inserir registro novo pra quem não fazia parte dela (ex.: aluno
-      // matriculado depois daquela aula) — isso inflava a frequência de gente
-      // que nem estava na turma naquele dia, só porque está ativa hoje.
+      // chamada dessa aula é feita — e só em modo de edição. Reabrir uma
+      // chamada já salva (ou abrir em modo leitura) não pode inserir registro
+      // novo pra quem não fazia parte dela (ex.: aluno matriculado depois
+      // daquela aula) — isso inflava a frequência de gente que nem estava na
+      // turma naquele dia, só porque está ativa hoje.
       const isNew = existing.length === 0
-      if (isNew) {
+      if (isNew && !readOnly) {
         activeEnrollments.forEach(e => {
           if (!map[e.disciple_id]) map[e.disciple_id] = 'FALTA'
         })
@@ -480,39 +501,70 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, justifiedAbse
             </div>
           ) : visibleLessons.length === 0 ? null : (
             <div className="flex flex-col gap-3">
-              {visibleLessons.map(l => (
-                <div key={l.id} className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3">
-                  <div>
-                    <p className="font-medium text-gray-900">{formatDate(l.date)}</p>
-                    {l.topic && <p className="text-sm text-gray-500">{l.topic}</p>}
-                    {l.module_templates && (
-                      <p className="text-xs mt-0.5 flex items-center gap-1 text-indigo-600">
-                        <span title="Presença nesta aula avança o módulo automaticamente">⚡</span>
-                        {l.module_templates.title}
-                      </p>
-                    )}
-                  </div>
-                  {canManage && (
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => openEditLesson(l)}
-                        className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-                        title="Editar aula"
-                        aria-label="Editar aula"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
+              {visibleLessons.map(l => {
+                const summary = getLessonSummary(l, activeEnrollments.length)
+                return (
+                  <div key={l.id} className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium text-gray-900">{formatDate(l.date)}</p>
+                        <span className={cn(
+                          'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
+                          summary.isComplete
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : summary.total > 0
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-gray-100 text-gray-500'
+                        )}>
+                          {summary.isComplete ? 'Chamada feita' : summary.total > 0 ? 'Chamada parcial' : 'Chamada pendente'}
+                        </span>
+                      </div>
+                      {l.topic && <p className="text-sm text-gray-500">{l.topic}</p>}
+                      {l.module_templates && (
+                        <p className="text-xs mt-0.5 flex items-center gap-1 text-indigo-600">
+                          <span title="Presença nesta aula avança o módulo automaticamente">⚡</span>
+                          {l.module_templates.title}
+                        </p>
+                      )}
+                      {summary.total > 0 && (
+                        <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
+                          <span className="text-green-700">{summary.present} presente{summary.present === 1 ? '' : 's'}</span>
+                          <span className="text-red-700">{summary.absent} falta{summary.absent === 1 ? '' : 's'}</span>
+                          <span className="text-yellow-700">{summary.justified} justificada{summary.justified === 1 ? '' : 's'}</span>
+                        </p>
+                      )}
+                    </div>
+                    {canManage ? (
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <button
+                          onClick={() => openEditLesson(l)}
+                          className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                          title="Editar aula"
+                          aria-label="Editar aula"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openAttendance(l.id)}
+                        >
+                          Chamada
+                        </Button>
+                      </div>
+                    ) : canViewAttendance ? (
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => openAttendance(l.id)}
+                        className="shrink-0"
+                        onClick={() => openAttendance(l.id, true)}
                       >
-                        Chamada
+                        Ver chamada
                       </Button>
-                    </div>
-                  )}
-                </div>
-              ))}
+                    ) : null}
+                  </div>
+                )
+              })}
             </div>
           )}
         </>
@@ -605,29 +657,62 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, justifiedAbse
         </div>
       </Dialog>
 
-      {/* Modal: chamada */}
-      <Dialog open={!!showAttendance} onClose={() => setShowAttendance(null)} title="Chamada" className="max-w-sm">
+      {/* Modal: chamada (edição ou só visualização) */}
+      <Dialog
+        open={!!showAttendance}
+        onClose={() => setShowAttendance(null)}
+        title={attendanceReadOnly ? 'Chamada (visualização)' : 'Chamada'}
+        className="max-w-sm"
+      >
         <div className="flex flex-col gap-3">
-          <p className="text-sm text-gray-500">Clique no nome para alternar entre Presente / Falta / Justificada</p>
-          {(attendanceIsNew ? activeEnrollments : activeEnrollments.filter(e => e.disciple_id in attendanceItems)).map(e => {
-            const status = attendanceItems[e.disciple_id] ?? 'FALTA'
+          {(() => {
+            const showAllRoster = attendanceIsNew && !attendanceReadOnly
+            const roster = showAllRoster
+              ? activeEnrollments
+              : activeEnrollments.filter(e => e.disciple_id in attendanceItems)
+
+            if (attendanceReadOnly && roster.length === 0) {
+              return <p className="text-sm text-gray-500">Chamada ainda não foi registrada nesta aula.</p>
+            }
+
             return (
-              <button
-                key={e.disciple_id}
-                onClick={() => toggleAttendance(e.disciple_id)}
-                className={cn(
-                  'flex items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium',
-                  ATTENDANCE_BTN[status]
-                )}
-              >
-                <span>{e.disciples.full_name}</span>
-                <span>{ATTENDANCE_LABEL[status]}</span>
-              </button>
+              <>
+                <p className="text-sm text-gray-500">
+                  {attendanceReadOnly
+                    ? 'Somente visualização — quem gerencia a turma pode editar.'
+                    : 'Clique no nome para alternar entre Presente / Falta / Justificada'}
+                </p>
+                {roster.map(e => {
+                  const status = attendanceItems[e.disciple_id] ?? 'FALTA'
+                  const rowClasses = cn(
+                    'flex items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium',
+                    ATTENDANCE_BTN[status],
+                    attendanceReadOnly && 'cursor-default opacity-90'
+                  )
+                  return attendanceReadOnly ? (
+                    <div key={e.disciple_id} className={rowClasses}>
+                      <span>{e.disciples.full_name}</span>
+                      <span>{ATTENDANCE_LABEL[status]}</span>
+                    </div>
+                  ) : (
+                    <button key={e.disciple_id} onClick={() => toggleAttendance(e.disciple_id)} className={rowClasses}>
+                      <span>{e.disciples.full_name}</span>
+                      <span>{ATTENDANCE_LABEL[status]}</span>
+                    </button>
+                  )
+                })}
+              </>
             )
-          })}
+          })()}
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setShowAttendance(null)}>Cancelar</Button>
-            <Button onClick={saveAttendance} loading={loading}>Salvar chamada</Button>
+            {attendanceReadOnly ? (
+              <Button variant="outline" onClick={() => setShowAttendance(null)}>Fechar</Button>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => setShowAttendance(null)}>Cancelar</Button>
+                <Button onClick={saveAttendance} loading={loading}>Salvar chamada</Button>
+              </>
+            )}
           </div>
         </div>
       </Dialog>
