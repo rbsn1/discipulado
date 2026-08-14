@@ -6,6 +6,7 @@ export interface DisciplesFilters {
   status?: CaseStatus | 'SEM_CASE'
   classId?: string
   assignedTo?: string
+  worshipServiceId?: string
 }
 
 // Só os campos renderizados/filtráveis na tabela de /discipulandos (ver DiscipleListItem).
@@ -20,7 +21,7 @@ export async function getDisciples(
   let query = supabase
     .from('disciples')
     .select(`
-      id, full_name, phone, origin, created_at,
+      id, full_name, phone, origin, created_at, worship_service_id,
       worship_services ( name ),
       discipleship_cases ( status, assigned_to, welcomed_on, profiles!assigned_to ( name ) ),
       class_enrollments ( active, class_id, classes ( name ) )
@@ -53,6 +54,10 @@ export async function getDisciples(
 
   if (filters?.assignedTo) {
     result = result.filter(d => d.discipleship_cases?.[0]?.assigned_to === filters.assignedTo)
+  }
+
+  if (filters?.worshipServiceId) {
+    result = result.filter(d => d.worship_service_id === filters.worshipServiceId)
   }
 
   return result

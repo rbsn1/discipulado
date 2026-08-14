@@ -9,18 +9,19 @@ import type { CaseStatus } from '@/types'
 export default async function DiscipulandosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; status?: string; turma?: string; responsavel?: string }>
+  searchParams: Promise<{ search?: string; status?: string; turma?: string; responsavel?: string; culto?: string }>
 }) {
   const profile = await getCurrentProfile()
   if (!profile?.congregation_id) redirect('/painel')
 
-  const { search, status, turma, responsavel } = await searchParams
+  const { search, status, turma, responsavel, culto } = await searchParams
   const [disciples, worshipServices, classes, profiles] = await Promise.all([
     getDisciples(profile.congregation_id, {
       search,
       status: status as CaseStatus | 'SEM_CASE' | undefined,
       classId: turma,
       assignedTo: responsavel,
+      worshipServiceId: culto,
     }),
     getWorshipServices(profile.congregation_id, { activeOnly: true }),
     getClasses(profile.congregation_id, { activeOnly: true }),
@@ -52,6 +53,7 @@ export default async function DiscipulandosPage({
         status={status}
         turma={turma}
         responsavel={responsavel}
+        culto={culto}
         worshipServices={worshipServices}
         classes={classes}
         discipuladores={discipuladores}

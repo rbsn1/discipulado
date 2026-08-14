@@ -133,6 +133,7 @@ export interface DiscipleListItem {
   phone: string | null
   origin: string | null
   created_at: string
+  worship_service_id: string | null
   worship_services: Pick<WorshipService, 'name'> | null
   discipleship_cases: (Pick<DiscipleshipCase, 'status' | 'assigned_to' | 'welcomed_on'> & {
     profiles: Pick<Profile, 'name'> | null

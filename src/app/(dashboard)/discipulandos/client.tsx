@@ -21,6 +21,7 @@ interface Props {
   status?: string
   turma?: string
   responsavel?: string
+  culto?: string
   worshipServices: WorshipService[]
   classes: Class[]
   discipuladores: Profile[]
@@ -45,6 +46,7 @@ export function DisciplesClientPage({
   status,
   turma,
   responsavel,
+  culto,
   worshipServices,
   classes,
   discipuladores,
@@ -69,12 +71,13 @@ export function DisciplesClientPage({
   }
 
   function applyFilters(overrides: Record<string, string | undefined>) {
-    const next = { search: searchValue, status, turma, responsavel, ...overrides }
+    const next = { search: searchValue, status, turma, responsavel, culto, ...overrides }
     const params = new URLSearchParams()
     if (next.search) params.set('search', next.search)
     if (next.status) params.set('status', next.status)
     if (next.turma) params.set('turma', next.turma)
     if (next.responsavel) params.set('responsavel', next.responsavel)
+    if (next.culto) params.set('culto', next.culto)
     router.push(`/discipulandos?${params.toString()}`)
   }
 
@@ -83,7 +86,7 @@ export function DisciplesClientPage({
     applyFilters({})
   }
 
-  const hasFilters = Boolean(status || turma || responsavel)
+  const hasFilters = Boolean(status || turma || responsavel || culto)
 
   // Quantas vidas acolhidas (da lista atual, já com os filtros aplicados)
   // vieram de cada culto — pra quem responde por um culto conseguir prestar
@@ -233,6 +236,13 @@ export function DisciplesClientPage({
         </form>
 
         <Select
+          value={culto ?? ''}
+          onChange={e => applyFilters({ culto: e.target.value || undefined })}
+          placeholder="Culto"
+          options={worshipServices.map(w => ({ value: w.id, label: w.name }))}
+          className="sm:w-40"
+        />
+        <Select
           value={status ?? ''}
           onChange={e => applyFilters({ status: e.target.value || undefined })}
           placeholder="Status"
@@ -256,7 +266,7 @@ export function DisciplesClientPage({
           />
         )}
         {hasFilters && (
-          <Button variant="outline" onClick={() => applyFilters({ status: undefined, turma: undefined, responsavel: undefined })}>
+          <Button variant="outline" onClick={() => applyFilters({ status: undefined, turma: undefined, responsavel: undefined, culto: undefined })}>
             <X className="h-4 w-4" />
             Limpar
           </Button>
