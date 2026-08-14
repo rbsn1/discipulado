@@ -134,7 +134,7 @@ export interface DiscipleListItem {
   origin: string | null
   created_at: string
   worship_services: Pick<WorshipService, 'name'> | null
-  discipleship_cases: (Pick<DiscipleshipCase, 'status' | 'assigned_to'> & {
+  discipleship_cases: (Pick<DiscipleshipCase, 'status' | 'assigned_to' | 'welcomed_on'> & {
     profiles: Pick<Profile, 'name'> | null
   })[]
   class_enrollments: { active: boolean; class_id: string; classes: Pick<Class, 'name'> | null }[]

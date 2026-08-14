@@ -22,7 +22,7 @@ export async function getDisciples(
     .select(`
       id, full_name, phone, origin, created_at,
       worship_services ( name ),
-      discipleship_cases ( status, assigned_to, profiles!assigned_to ( name ) ),
+      discipleship_cases ( status, assigned_to, welcomed_on, profiles!assigned_to ( name ) ),
       class_enrollments ( active, class_id, classes ( name ) )
     `)
     .eq('congregation_id', congregationId)

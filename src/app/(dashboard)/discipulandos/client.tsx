@@ -9,7 +9,7 @@ import { Select } from '@/components/ui/select'
 import { Dialog } from '@/components/ui/dialog'
 import { DiscipleForm } from '@/components/features/disciples/disciple-form'
 import { CASE_STATUS_LABEL, CASE_STATUS_COLOR, formatDate } from '@/lib/utils'
-import { Plus, Search, X } from 'lucide-react'
+import { Plus, Search, X, CalendarDays } from 'lucide-react'
 import type { DiscipleListItem, CreateDiscipleInput, WorshipService, Class, Profile, CaseStatus, UserRole } from '@/types'
 
 interface Props {
@@ -24,6 +24,11 @@ interface Props {
   worshipServices: WorshipService[]
   classes: Class[]
   discipuladores: Profile[]
+}
+
+function todayISO() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 const STATUS_OPTIONS: { value: CaseStatus | 'SEM_CASE'; label: string }[] = [
@@ -47,6 +52,7 @@ export function DisciplesClientPage({
   const router = useRouter()
   const [showForm, setShowForm] = useState(false)
   const [searchValue, setSearchValue] = useState(search ?? '')
+  const [cultoDate, setCultoDate] = useState('')
 
   async function handleCreate(data: CreateDiscipleInput) {
     const res = await fetch('/api/disciples', {
@@ -83,11 +89,20 @@ export function DisciplesClientPage({
   // vieram de cada culto — pra quem responde por um culto conseguir prestar
   // contas sem precisar contar linha por linha na tabela. Cultos sem
   // ninguém ainda aparecem com 0, não somem da lista.
+  //
+  // Sem data selecionada mostra o total acumulado; com data, filtra por
+  // welcomed_on (data em que a vida foi de fato acolhida, não a data de
+  // cadastro no sistema) — é isso que a liderança precisa prestar contas
+  // por dia de culto, não o total geral desde sempre.
   const cultoStats = useMemo(() => {
+    const base = cultoDate
+      ? disciples.filter(d => d.discipleship_cases?.[0]?.welcomed_on === cultoDate)
+      : disciples
+
     const counts = new Map<string, number>()
     worshipServices.forEach(w => counts.set(w.name, 0))
     let semCulto = 0
-    disciples.forEach(d => {
+    base.forEach(d => {
       const name = d.worship_services?.name
       if (name) counts.set(name, (counts.get(name) ?? 0) + 1)
       else semCulto++
@@ -95,7 +110,7 @@ export function DisciplesClientPage({
     const entries = [...counts.entries()].map(([name, count]) => ({ name, count }))
     if (semCulto > 0) entries.push({ name: 'Não informado', count: semCulto })
     return entries
-  }, [disciples, worshipServices])
+  }, [disciples, worshipServices, cultoDate])
 
   return (
     <>
@@ -114,13 +129,47 @@ export function DisciplesClientPage({
       </div>
 
       {cultoStats.length > 0 && (
-        <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {cultoStats.map(({ name, count }) => (
-            <div key={name} className="rounded-xl border border-gray-100 bg-white p-4 text-center shadow-sm">
-              <p className="text-2xl font-bold text-gray-900">{count}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{name}</p>
-            </div>
-          ))}
+        <div className="mb-6">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <p className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
+              <CalendarDays className="h-4 w-4 text-gray-400" />
+              Vidas acolhidas por culto
+            </p>
+            <input
+              type="date"
+              value={cultoDate}
+              onChange={e => setCultoDate(e.target.value)}
+              className="h-8 rounded-lg border border-gray-200 bg-white px-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+            />
+            <button
+              type="button"
+              onClick={() => setCultoDate(todayISO())}
+              className="h-8 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-600 hover:bg-gray-50"
+            >
+              Hoje
+            </button>
+            {cultoDate && (
+              <button
+                type="button"
+                onClick={() => setCultoDate('')}
+                className="h-8 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-600 hover:bg-gray-50"
+              >
+                <X className="inline h-3.5 w-3.5 mr-1" />
+                Ver total geral
+              </button>
+            )}
+            <span className="text-xs text-gray-400">
+              {cultoDate ? `Mostrando acolhidos em ${formatDate(cultoDate)}` : 'Mostrando total acumulado — escolha um dia pra prestação de contas do culto'}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {cultoStats.map(({ name, count }) => (
+              <div key={name} className="rounded-xl border border-gray-100 bg-white p-4 text-center shadow-sm">
+                <p className="text-2xl font-bold text-gray-900">{count}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{name}</p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
