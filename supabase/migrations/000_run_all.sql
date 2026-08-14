@@ -2643,3 +2643,14 @@ begin
   );
 end;
 $$;
+
+-- =============================================================
+-- 024_attendance_makeup.sql
+-- =============================================================
+
+-- recálculo — "reposta" é só controle de acompanhamento, não afeta
+-- a fórmula de frequência (justificada nunca prejudicou o cálculo).
+-- =============================================================
+
+alter table attendance_items
+  add column if not exists made_up boolean not null default false;

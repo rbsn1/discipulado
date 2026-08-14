@@ -278,6 +278,7 @@ export interface AttendanceItem {
   disciple_id: string
   status: AttendanceStatus
   note: string | null
+  made_up: boolean
   marked_at: string
   marked_by: string | null
   created_at: string

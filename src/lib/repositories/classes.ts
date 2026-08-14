@@ -226,6 +226,39 @@ export async function recordAttendance(
   if (error) throw error
 }
 
+export interface JustifiedAbsence {
+  id: string
+  note: string | null
+  made_up: boolean
+  lessons: { id: string; date: string; topic: string | null } | null
+}
+
+// Faltas justificadas de um discipulando com a aula específica de cada uma
+// (attendance_items.lesson_id já guarda isso, só faltava expor) — pra saber
+// exatamente qual aula precisa ser reposta, não só a contagem agregada.
+export async function getJustifiedAbsences(discipleId: string): Promise<JustifiedAbsence[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('attendance_items')
+    .select('id, note, made_up, lessons ( id, date, topic )')
+    .eq('disciple_id', discipleId)
+    .eq('status', 'JUSTIFICADA')
+    .order('date', { referencedTable: 'lessons', ascending: false })
+
+  if (error) throw error
+  return data as unknown as JustifiedAbsence[]
+}
+
+export async function setAbsenceMadeUp(attendanceItemId: string, madeUp: boolean): Promise<void> {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('attendance_items')
+    .update({ made_up: madeUp })
+    .eq('id', attendanceItemId)
+
+  if (error) throw error
+}
+
 export async function getEnrollmentsByClass(classId: string): Promise<ClassEnrollment[]> {
   const supabase = await createClient()
   const { data, error } = await supabase

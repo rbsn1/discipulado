@@ -73,6 +73,7 @@ import type {
   ContactOutcome,
   WorshipService,
 } from '@/types'
+import type { JustifiedAbsence } from '@/lib/repositories/classes'
 
 interface Props {
   disciple: Disciple & { congregation_id: string; worship_services?: { id: string; name: string } | null; class_enrollments?: { id: string; active: boolean; class_id: string; classes: { id: string; name: string; shift: string } | null }[] }
@@ -84,6 +85,7 @@ interface Props {
   hasAttendedConfraternizacao: boolean
   preferredShift: string | null
   worshipServices: WorshipService[]
+  justifiedAbsences: JustifiedAbsence[]
 }
 
 const CONTACT_OUTCOMES: { value: ContactOutcome; label: string }[] = [
@@ -111,6 +113,7 @@ export function DiscipleDetailClient({
   hasAttendedConfraternizacao,
   preferredShift,
   worshipServices,
+  justifiedAbsences,
 }: Props) {
   const router = useRouter()
   const [editDisciple, setEditDisciple] = useState(false)
@@ -119,6 +122,7 @@ export function DiscipleDetailClient({
   const [contactModal, setContactModal] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [makeUpLoadingId, setMakeUpLoadingId] = useState<string | null>(null)
 
   // Start case form
   const [assignedTo, setAssignedTo] = useState('')
@@ -134,6 +138,19 @@ export function DiscipleDetailClient({
 
   const canEdit = ['ADMIN_DISCIPULADO', 'DISCIPULADOR', 'SECRETARIA_DISCIPULADO', 'SM_DISCIPULADO', 'ADMIN_PLATAFORMA'].includes(currentProfile.role)
   const canManageCase = ['ADMIN_DISCIPULADO', 'DISCIPULADOR', 'SM_DISCIPULADO', 'ADMIN_PLATAFORMA'].includes(currentProfile.role)
+  const canManageAttendance = ['ADMIN_DISCIPULADO', 'DISCIPULADOR', 'ADMIN_PLATAFORMA'].includes(currentProfile.role)
+
+  async function toggleMadeUp(item: JustifiedAbsence) {
+    setMakeUpLoadingId(item.id)
+    const res = await fetch(`/api/attendance-items/${item.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ made_up: !item.made_up }),
+    })
+    if (!res.ok) setError((await res.json()).error)
+    else router.refresh()
+    setMakeUpLoadingId(null)
+  }
 
   async function call(url: string, method: string, body?: Record<string, unknown>) {
     setLoading(true)
@@ -463,6 +480,49 @@ export function DiscipleDetailClient({
                     <dt className="text-red-600">Faltas</dt>
                   </div>
                 </dl>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Faltas justificadas — qual aula, pra saber o que precisa ser reposto */}
+          {justifiedAbsences.length > 0 && (
+            <Card>
+              <CardHeader><CardTitle>Faltas Justificadas</CardTitle></CardHeader>
+              <CardContent>
+                <ul className="flex flex-col gap-2">
+                  {justifiedAbsences.map(item => (
+                    <li
+                      key={item.id}
+                      className={cn(
+                        'flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm',
+                        item.made_up ? 'border-gray-100 bg-gray-50' : 'border-yellow-200 bg-yellow-50'
+                      )}
+                    >
+                      <div className="min-w-0">
+                        <p className={cn('font-medium', item.made_up ? 'text-gray-500 line-through' : 'text-gray-900')}>
+                          {item.lessons ? formatDate(item.lessons.date) : '—'}
+                        </p>
+                        {item.lessons?.topic && (
+                          <p className="text-xs text-gray-500 truncate">{item.lessons.topic}</p>
+                        )}
+                      </div>
+                      {canManageAttendance ? (
+                        <Button
+                          size="sm"
+                          variant={item.made_up ? 'outline' : 'primary'}
+                          loading={makeUpLoadingId === item.id}
+                          onClick={() => toggleMadeUp(item)}
+                        >
+                          {item.made_up ? 'Reposta' : 'Marcar reposta'}
+                        </Button>
+                      ) : (
+                        <Badge variant={item.made_up ? 'muted' : 'warning'}>
+                          {item.made_up ? 'Reposta' : 'Pendente'}
+                        </Badge>
+                      )}
+                    </li>
+                  ))}
+                </ul>
               </CardContent>
             </Card>
           )}

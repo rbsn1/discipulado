@@ -2,7 +2,7 @@ import { getCurrentProfile } from '@/lib/repositories/profiles'
 import { getDiscipleById } from '@/lib/repositories/disciples'
 import { getCaseTimeline } from '@/lib/repositories/cases'
 import { getProfilesByCongregation } from '@/lib/repositories/profiles'
-import { getClasses } from '@/lib/repositories/classes'
+import { getClasses, getJustifiedAbsences } from '@/lib/repositories/classes'
 import { getCaseConfraternizacaoInfo } from '@/lib/repositories/events'
 import { getWorshipServices } from '@/lib/repositories/worship-services'
 import { redirect, notFound } from 'next/navigation'
@@ -26,12 +26,13 @@ export default async function DiscipleDetailPage({
   }
 
   const activeCase = disciple.discipleship_cases?.[0] ?? null
-  const [timeline, profiles, classes, confraternizacaoInfo, worshipServices] = await Promise.all([
+  const [timeline, profiles, classes, confraternizacaoInfo, worshipServices, justifiedAbsences] = await Promise.all([
     activeCase ? getCaseTimeline(activeCase.id) : Promise.resolve([]),
     getProfilesByCongregation(profile.congregation_id),
     getClasses(profile.congregation_id, { activeOnly: true }),
     activeCase ? getCaseConfraternizacaoInfo(activeCase.id) : Promise.resolve({ hasAttended: false, preferredShift: null }),
     getWorshipServices(profile.congregation_id, { activeOnly: true }),
+    getJustifiedAbsences(id),
   ])
 
   // Só quem pode assumir um discipulando e ainda está ativo — evita listar
@@ -52,6 +53,7 @@ export default async function DiscipleDetailPage({
         hasAttendedConfraternizacao={confraternizacaoInfo.hasAttended}
         preferredShift={confraternizacaoInfo.preferredShift}
         worshipServices={worshipServices}
+        justifiedAbsences={justifiedAbsences}
       />
     </div>
   )
