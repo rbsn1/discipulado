@@ -2688,3 +2688,102 @@ begin
     and status in ('FALTA', 'JUSTIFICADA');
 end;
 $$;
+
+-- =============================================================
+-- 026_security_hardening.sql
+-- =============================================================
+
+-- isso é decisão maior (precisaria de checagem de papel/congregação DENTRO
+-- de cada função), tratada à parte, não nesta migration.
+-- =============================================================
+
+alter function set_updated_at() set search_path = public;
+
+create schema if not exists extensions;
+alter extension pg_trgm set schema extensions;
+
+drop policy if exists logos_public_read on storage.objects;
+
+revoke execute on function
+  advance_case_after_fbv_confirmation(uuid, uuid),
+  auth_congregation_id(),
+  auth_profile(),
+  auth_role(),
+  belongs_to_congregation(uuid),
+  conclude_case(uuid, uuid),
+  create_discipleship_case(uuid, uuid, uuid, date, text, uuid),
+  enroll_disciple(uuid, uuid, uuid, uuid),
+  get_dashboard_stats(),
+  get_my_access_status(),
+  get_report_stats(),
+  has_role(user_role[]),
+  is_platform_admin(),
+  recalculate_case_attendance(uuid),
+  record_attendance(uuid, jsonb, uuid),
+  register_congregation_payment(uuid, date, numeric, text),
+  resolve_makeup_attendance(uuid, uuid[], uuid),
+  revert_case_after_fbv_confirmation_removed(uuid, uuid),
+  start_post_discipleship(uuid, uuid),
+  unenroll_disciple(uuid, uuid, uuid)
+from anon;
+
+revoke execute on function
+  auto_advance_module_progress(),
+  guard_profile_sensitive_update(),
+  handle_new_user(),
+  set_updated_at(),
+  trg_fn_confirmation_attended(),
+  trg_fn_confirmation_removed_or_unattended(),
+  trg_fn_event_realizado(),
+  trg_recalculate_attendance_fn()
+from anon, authenticated;
+
+drop function if exists auto_advance_case_after_fbv_confirmation();
+
+-- =============================================================
+-- 027_security_hardening_fix.sql
+-- =============================================================
+
+-- =============================================================
+
+revoke execute on function
+  advance_case_after_fbv_confirmation(uuid, uuid),
+  auth_congregation_id(),
+  auth_profile(),
+  auth_role(),
+  belongs_to_congregation(uuid),
+  conclude_case(uuid, uuid),
+  create_discipleship_case(uuid, uuid, uuid, date, text, uuid),
+  enroll_disciple(uuid, uuid, uuid, uuid),
+  get_dashboard_stats(),
+  get_my_access_status(),
+  get_report_stats(),
+  has_role(user_role[]),
+  is_platform_admin(),
+  recalculate_case_attendance(uuid),
+  record_attendance(uuid, jsonb, uuid),
+  register_congregation_payment(uuid, date, numeric, text),
+  resolve_makeup_attendance(uuid, uuid[], uuid),
+  revert_case_after_fbv_confirmation_removed(uuid, uuid),
+  start_post_discipleship(uuid, uuid),
+  unenroll_disciple(uuid, uuid, uuid)
+from public;
+
+revoke execute on function
+  auto_advance_module_progress(),
+  guard_profile_sensitive_update(),
+  handle_new_user(),
+  set_updated_at(),
+  trg_fn_confirmation_attended(),
+  trg_fn_confirmation_removed_or_unattended(),
+  trg_fn_event_realizado(),
+  trg_recalculate_attendance_fn()
+from public;
+
+-- =============================================================
+-- 028_security_hardening_event_trigger.sql
+-- =============================================================
+
+-- =============================================================
+
+revoke execute on function rls_auto_enable() from public;
