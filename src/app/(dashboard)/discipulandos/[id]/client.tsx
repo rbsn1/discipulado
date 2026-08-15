@@ -73,7 +73,7 @@ import type {
   ContactOutcome,
   WorshipService,
 } from '@/types'
-import type { JustifiedAbsence } from '@/lib/repositories/classes'
+import type { Absence } from '@/lib/repositories/classes'
 
 interface Props {
   disciple: Disciple & { congregation_id: string; worship_services?: { id: string; name: string } | null; class_enrollments?: { id: string; active: boolean; class_id: string; classes: { id: string; name: string; shift: string } | null }[] }
@@ -85,7 +85,7 @@ interface Props {
   hasAttendedConfraternizacao: boolean
   preferredShift: string | null
   worshipServices: WorshipService[]
-  justifiedAbsences: JustifiedAbsence[]
+  absences: Absence[]
 }
 
 const CONTACT_OUTCOMES: { value: ContactOutcome; label: string }[] = [
@@ -113,7 +113,7 @@ export function DiscipleDetailClient({
   hasAttendedConfraternizacao,
   preferredShift,
   worshipServices,
-  justifiedAbsences,
+  absences,
 }: Props) {
   const router = useRouter()
   const [editDisciple, setEditDisciple] = useState(false)
@@ -140,7 +140,7 @@ export function DiscipleDetailClient({
   const canManageCase = ['ADMIN_DISCIPULADO', 'DISCIPULADOR', 'SM_DISCIPULADO', 'ADMIN_PLATAFORMA'].includes(currentProfile.role)
   const canManageAttendance = ['ADMIN_DISCIPULADO', 'DISCIPULADOR', 'ADMIN_PLATAFORMA'].includes(currentProfile.role)
 
-  async function toggleMadeUp(item: JustifiedAbsence) {
+  async function toggleMadeUp(item: Absence) {
     setMakeUpLoadingId(item.id)
     const res = await fetch(`/api/attendance-items/${item.id}`, {
       method: 'PATCH',
@@ -484,13 +484,13 @@ export function DiscipleDetailClient({
             </Card>
           )}
 
-          {/* Faltas justificadas — qual aula, pra saber o que precisa ser reposto */}
-          {justifiedAbsences.length > 0 && (
+          {/* Faltas (com ou sem justificativa) — qual aula, pra saber o que precisa ser reposto */}
+          {absences.length > 0 && (
             <Card>
-              <CardHeader><CardTitle>Faltas Justificadas</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Faltas</CardTitle></CardHeader>
               <CardContent>
                 <ul className="flex flex-col gap-2">
-                  {justifiedAbsences.map(item => (
+                  {absences.map(item => (
                     <li
                       key={item.id}
                       className={cn(
@@ -499,9 +499,14 @@ export function DiscipleDetailClient({
                       )}
                     >
                       <div className="min-w-0">
-                        <p className={cn('font-medium', item.made_up ? 'text-gray-500 line-through' : 'text-gray-900')}>
-                          {item.lessons ? formatDate(item.lessons.date) : '—'}
-                        </p>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className={cn('font-medium', item.made_up ? 'text-gray-500 line-through' : 'text-gray-900')}>
+                            {item.lessons ? formatDate(item.lessons.date) : '—'}
+                          </p>
+                          <span className={cn('rounded-full px-1.5 py-0.5 text-[10px] font-medium', ATTENDANCE_COLOR[item.status])}>
+                            {ATTENDANCE_LABEL[item.status]}
+                          </span>
+                        </div>
                         {item.lessons?.topic && (
                           <p className="text-xs text-gray-500 truncate">{item.lessons.topic}</p>
                         )}

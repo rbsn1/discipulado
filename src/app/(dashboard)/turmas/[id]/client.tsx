@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ATTENDANCE_LABEL, ATTENDANCE_COLOR, formatDate, cn } from '@/lib/utils'
 import { Plus, ChevronRight, CalendarDays, Users, CheckCircle, X, Minus, Search, UserMinus, UserPlus, Pencil, RotateCcw } from 'lucide-react'
 import type { Profile, ModuleTemplate, AttendanceStatus, CaseListItem } from '@/types'
-import type { ClassJustifiedAbsence } from '@/lib/repositories/classes'
+import type { ClassAbsence } from '@/lib/repositories/classes'
 import { isAfter, isBefore, parseISO, startOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns'
 import { getAttendanceCriticality } from '@/lib/utils'
 
@@ -63,7 +63,7 @@ interface Props {
   }
   modules: ModuleTemplate[]
   eligibleCases: CaseListItem[]
-  justifiedAbsences: ClassJustifiedAbsence[]
+  absences: ClassAbsence[]
   currentProfile: Profile
 }
 
@@ -79,7 +79,7 @@ const ATTENDANCE_BTN: Record<AttendanceStatus, string> = {
   JUSTIFICADA: 'bg-yellow-100 text-yellow-800 border-yellow-300',
 }
 
-export function TurmaDetailClient({ turma, modules, eligibleCases, justifiedAbsences, currentProfile }: Props) {
+export function TurmaDetailClient({ turma, modules, eligibleCases, absences, currentProfile }: Props) {
   const router = useRouter()
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [lessonLoaded, setLessonLoaded] = useState(false)
@@ -163,7 +163,7 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, justifiedAbse
     if (tab === 'aulas') await loadLessons()
   }
 
-  async function toggleMadeUp(item: ClassJustifiedAbsence) {
+  async function toggleMadeUp(item: ClassAbsence) {
     setMakeUpLoadingId(item.id)
     const res = await fetch(`/api/attendance-items/${item.id}`, {
       method: 'PATCH',
@@ -338,7 +338,7 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, justifiedAbse
           >
             {tab === 'alunos' ? <><Users className="inline h-4 w-4 mr-1" />Alunos ({activeEnrollments.length})</> :
               tab === 'aulas' ? <><CalendarDays className="inline h-4 w-4 mr-1" />Aulas</> :
-              <><RotateCcw className="inline h-4 w-4 mr-1" />Reposições ({justifiedAbsences.filter(j => !j.made_up).length})</>}
+              <><RotateCcw className="inline h-4 w-4 mr-1" />Reposições ({absences.filter(j => !j.made_up).length})</>}
           </button>
         ))}
       </div>
@@ -573,19 +573,24 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, justifiedAbse
       {activeTab === 'reposicoes' && (
         <Card>
           <CardHeader>
-            <CardTitle>Faltas justificadas</CardTitle>
+            <CardTitle>Faltas</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            {justifiedAbsences.length === 0 ? (
-              <p className="px-4 py-8 text-center text-sm text-gray-500">Nenhuma falta justificada registrada nesta turma</p>
+            {absences.length === 0 ? (
+              <p className="px-4 py-8 text-center text-sm text-gray-500">Nenhuma falta registrada nesta turma</p>
             ) : (
               <ul className="divide-y divide-gray-50">
-                {justifiedAbsences.map(item => (
+                {absences.map(item => (
                   <li key={item.id} className="flex items-center justify-between gap-3 px-4 py-3">
                     <div className="min-w-0">
-                      <p className={cn('font-medium text-sm', item.made_up ? 'text-gray-500 line-through' : 'text-gray-900')}>
-                        {item.disciples?.full_name ?? '—'}
-                      </p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className={cn('font-medium text-sm', item.made_up ? 'text-gray-500 line-through' : 'text-gray-900')}>
+                          {item.disciples?.full_name ?? '—'}
+                        </p>
+                        <span className={cn('rounded-full px-1.5 py-0.5 text-[10px] font-medium', ATTENDANCE_COLOR[item.status])}>
+                          {ATTENDANCE_LABEL[item.status]}
+                        </span>
+                      </div>
                       <p className="text-xs text-gray-500">
                         {item.lessons ? formatDate(item.lessons.date) : '—'}
                         {item.lessons?.topic && ` · ${item.lessons.topic}`}

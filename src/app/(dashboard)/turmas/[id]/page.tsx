@@ -1,5 +1,5 @@
 import { getCurrentProfile } from '@/lib/repositories/profiles'
-import { getClassById, getJustifiedAbsencesByClass } from '@/lib/repositories/classes'
+import { getClassById, getAbsencesByClass } from '@/lib/repositories/classes'
 import { getModuleTemplates } from '@/lib/repositories/modules'
 import { getCases, getPreferredShiftByCaseId } from '@/lib/repositories/cases'
 import { redirect, notFound } from 'next/navigation'
@@ -15,12 +15,12 @@ export default async function TurmaDetailPage({
   if (profile.role === 'DISCIPULADOR') redirect('/painel')
 
   const { id } = await params
-  const [turma, modules, pendingCases, shiftByCase, justifiedAbsences] = await Promise.all([
+  const [turma, modules, pendingCases, shiftByCase, absences] = await Promise.all([
     getClassById(id).catch(() => null),
     getModuleTemplates(profile.congregation_id, { activeOnly: true }),
     getCases(profile.congregation_id, { status: ['PENDENTE_MATRICULA'] }),
     getPreferredShiftByCaseId(profile.congregation_id),
-    getJustifiedAbsencesByClass(id),
+    getAbsencesByClass(id),
   ])
   if (!turma) notFound()
 
@@ -37,7 +37,7 @@ export default async function TurmaDetailPage({
         turma={turma as any}
         modules={modules}
         eligibleCases={eligibleCases}
-        justifiedAbsences={justifiedAbsences}
+        absences={absences}
         currentProfile={profile}
       />
     </div>

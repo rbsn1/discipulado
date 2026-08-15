@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import type { Class, ClassEnrollment, Lesson, AttendanceItem, AttendanceItemInput } from '@/types'
+import type { Class, ClassEnrollment, Lesson, AttendanceItem, AttendanceItemInput, AttendanceStatus } from '@/types'
 
 export async function getClasses(congregationId: string, options?: { activeOnly?: boolean }) {
   const supabase = await createClient()
@@ -228,50 +228,54 @@ export async function recordAttendance(
   if (error) throw error
 }
 
-export interface JustifiedAbsence {
+export interface Absence {
   id: string
+  status: AttendanceStatus
   note: string | null
   made_up: boolean
   lessons: { id: string; date: string; topic: string | null } | null
 }
 
-// Faltas justificadas de um discipulando com a aula específica de cada uma
-// (attendance_items.lesson_id já guarda isso, só faltava expor) — pra saber
-// exatamente qual aula precisa ser reposta, não só a contagem agregada.
-export async function getJustifiedAbsences(discipleId: string): Promise<JustifiedAbsence[]> {
+// Faltas (justificadas OU não) de um discipulando com a aula específica de
+// cada uma (attendance_items.lesson_id já guarda isso, só faltava expor) —
+// pra saber exatamente qual aula precisa ser reposta, não só a contagem
+// agregada. Falta sem justificativa também precisa ser reposta, não só a
+// justificada.
+export async function getAbsences(discipleId: string): Promise<Absence[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('attendance_items')
-    .select('id, note, made_up, lessons ( id, date, topic )')
+    .select('id, status, note, made_up, lessons ( id, date, topic )')
     .eq('disciple_id', discipleId)
-    .eq('status', 'JUSTIFICADA')
+    .in('status', ['FALTA', 'JUSTIFICADA'])
     .order('date', { referencedTable: 'lessons', ascending: false })
 
   if (error) throw error
-  return data as unknown as JustifiedAbsence[]
+  return data as unknown as Absence[]
 }
 
-export interface ClassJustifiedAbsence {
+export interface ClassAbsence {
   id: string
+  status: AttendanceStatus
   made_up: boolean
   disciples: { id: string; full_name: string } | null
   lessons: { id: string; date: string; topic: string | null } | null
 }
 
-// Mesma ideia de getJustifiedAbsences, só que olhando pra turma inteira em vez
-// de um discipulando só — pra quem gerencia a turma ver de uma vez quem
-// precisa repor o quê, sem entrar na ficha de cada aluno.
-export async function getJustifiedAbsencesByClass(classId: string): Promise<ClassJustifiedAbsence[]> {
+// Mesma ideia de getAbsences, só que olhando pra turma inteira em vez de um
+// discipulando só — pra quem gerencia a turma ver de uma vez quem precisa
+// repor o quê, sem entrar na ficha de cada aluno.
+export async function getAbsencesByClass(classId: string): Promise<ClassAbsence[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('attendance_items')
-    .select('id, made_up, disciples ( id, full_name ), lessons!inner ( id, date, topic, class_id )')
-    .eq('status', 'JUSTIFICADA')
+    .select('id, status, made_up, disciples ( id, full_name ), lessons!inner ( id, date, topic, class_id )')
+    .in('status', ['FALTA', 'JUSTIFICADA'])
     .eq('lessons.class_id', classId)
     .order('date', { referencedTable: 'lessons', ascending: false })
 
   if (error) throw error
-  return data as unknown as ClassJustifiedAbsence[]
+  return data as unknown as ClassAbsence[]
 }
 
 export async function setAbsenceMadeUp(attendanceItemId: string, madeUp: boolean): Promise<void> {
