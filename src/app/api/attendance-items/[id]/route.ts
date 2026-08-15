@@ -19,7 +19,7 @@ export async function PATCH(
   }
 
   try {
-    await setAbsenceMadeUp(id, body.made_up)
+    await setAbsenceMadeUp(id, body.made_up, profile.id)
     return NextResponse.json({ success: true })
   } catch (err: unknown) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 })

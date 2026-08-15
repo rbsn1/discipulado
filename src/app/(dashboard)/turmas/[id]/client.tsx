@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -29,6 +29,8 @@ interface Lesson {
   topic: string | null
   module_templates?: { id: string; title: string } | null
   attendance_items?: { id: string; status: AttendanceStatus }[]
+  makeup_for_lesson_id?: string | null
+  makeup_for_lesson?: { id: string; date: string; topic: string | null } | null
 }
 
 // Resumo de presença de uma aula + se a chamada está de fato completa —
@@ -91,6 +93,8 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, absences, cur
   const [attendanceItems, setAttendanceItems] = useState<Record<string, AttendanceStatus>>({})
   const [attendanceIsNew, setAttendanceIsNew] = useState(true)
   const [attendanceReadOnly, setAttendanceReadOnly] = useState(false)
+  const [makeupResolved, setMakeupResolved] = useState<Set<string>>(new Set())
+  const [makeupForLessonId, setMakeupForLessonId] = useState<string | null>(null)
   const [lessonDate, setLessonDate] = useState('')
   const [lessonTopic, setLessonTopic] = useState('')
   const [lessonModule, setLessonModule] = useState('')
@@ -160,8 +164,28 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, absences, cur
 
   async function handleTabChange(tab: 'alunos' | 'aulas' | 'reposicoes') {
     setActiveTab(tab)
-    if (tab === 'aulas') await loadLessons()
+    // Reposições também precisa da lista de aulas — pra saber se já existe
+    // uma aula de reposição criada pra cada aula original com falta pendente.
+    if (tab === 'aulas' || tab === 'reposicoes') await loadLessons()
   }
+
+  // Aulas com falta pendente agrupadas pela aula original — e se já existe
+  // uma aula de reposição criada pra ela, pra não oferecer "criar" de novo.
+  const pendingAbsencesByLesson = useMemo(() => {
+    const map = new Map<string, { lesson: { id: string; date: string; topic: string | null }; items: ClassAbsence[] }>()
+    absences.filter(a => !a.made_up).forEach(a => {
+      if (!a.lessons) return
+      const key = a.lessons.id
+      if (!map.has(key)) map.set(key, { lesson: a.lessons, items: [] })
+      map.get(key)!.items.push(a)
+    })
+    return [...map.values()]
+      .map(group => ({
+        ...group,
+        makeupLesson: lessons.find(l => l.makeup_for_lesson_id === group.lesson.id) ?? null,
+      }))
+      .sort((a, b) => b.lesson.date.localeCompare(a.lesson.date))
+  }, [absences, lessons])
 
   async function toggleMadeUp(item: ClassAbsence) {
     setMakeUpLoadingId(item.id)
@@ -206,6 +230,7 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, absences, cur
 
   function openNewLesson() {
     setEditLesson(null)
+    setMakeupForLessonId(null)
     setLessonDate('')
     setLessonTopic('')
     setLessonModule('')
@@ -213,8 +238,19 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, absences, cur
     setShowNewLesson(true)
   }
 
+  function openMakeupLessonDialog(original: { id: string; date: string; topic: string | null }) {
+    setEditLesson(null)
+    setMakeupForLessonId(original.id)
+    setLessonDate('')
+    setLessonTopic(`Reposição — ${original.topic || formatDate(original.date)}`)
+    setLessonModule('')
+    setError('')
+    setShowNewLesson(true)
+  }
+
   function openEditLesson(l: Lesson) {
     setEditLesson(l)
+    setMakeupForLessonId(null)
     setLessonDate(l.date)
     setLessonTopic(l.topic ?? '')
     setLessonModule(l.module_templates?.id ?? '')
@@ -226,11 +262,12 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, absences, cur
     if (!lessonDate) { setError('Data obrigatória'); return }
     setLoading(true)
     setError('')
-    const body = {
+    const body: Record<string, unknown> = {
       date: lessonDate,
       topic: lessonTopic || null,
       module_template_id: lessonModule || null,
     }
+    if (!editLesson && makeupForLessonId) body.makeup_for_lesson_id = makeupForLessonId
     const res = await fetch(
       editLesson ? `/api/lessons/${editLesson.id}` : `/api/classes/${turma.id}/lessons`,
       {
@@ -250,6 +287,7 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, absences, cur
       )
       setShowNewLesson(false)
       setEditLesson(null)
+      setMakeupForLessonId(null)
       setLessonDate('')
       setLessonTopic('')
       setLessonModule('')
@@ -260,6 +298,16 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, absences, cur
   async function openAttendance(lessonId: string, readOnly = false) {
     setShowAttendance(lessonId)
     setAttendanceReadOnly(readOnly)
+
+    // Aula de reposição não tem attendance_items própria — quem "compareceu"
+    // ali resolve direto a falta da aula ORIGINAL (ver saveMakeupAttendance),
+    // então não faz sentido buscar/pré-preencher chamada normal aqui.
+    const lesson = lessons.find(l => l.id === lessonId)
+    if (lesson?.makeup_for_lesson_id) {
+      setMakeupResolved(new Set())
+      return
+    }
+
     const res = await fetch(`/api/lessons/${lessonId}/attendance`)
     if (res.ok) {
       const existing: Array<{ disciple_id: string; status: AttendanceStatus }> = await res.json()
@@ -305,6 +353,32 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, absences, cur
     })
     if (!res.ok) setError((await res.json()).error)
     else setShowAttendance(null)
+    setLoading(false)
+  }
+
+  function toggleMakeupResolved(discipleId: string) {
+    setMakeupResolved(prev => {
+      const next = new Set(prev)
+      if (next.has(discipleId)) next.delete(discipleId)
+      else next.add(discipleId)
+      return next
+    })
+  }
+
+  // Quem compareceu na reposição tem a falta da aula ORIGINAL convertida
+  // direto pra presença — não cria registro novo na aula de reposição em
+  // si, então precisa recarregar (router.refresh) pra "absences" refletir
+  // quem saiu da pendência.
+  async function saveMakeupAttendance() {
+    if (!showAttendance || makeupResolved.size === 0) { setShowAttendance(null); return }
+    setLoading(true)
+    const res = await fetch(`/api/lessons/${showAttendance}/resolve-makeup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ disciple_ids: [...makeupResolved] }),
+    })
+    if (!res.ok) setError((await res.json()).error)
+    else { setShowAttendance(null); router.refresh() }
     setLoading(false)
   }
 
@@ -503,22 +577,36 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, absences, cur
             <div className="flex flex-col gap-3">
               {visibleLessons.map(l => {
                 const summary = getLessonSummary(l, activeEnrollments.length)
+                const isMakeup = !!l.makeup_for_lesson_id
+                const pendingMakeup = isMakeup
+                  ? absences.filter(a => !a.made_up && a.lessons?.id === l.makeup_for_lesson_id).length
+                  : 0
                 return (
                   <div key={l.id} className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-medium text-gray-900">{formatDate(l.date)}</p>
-                        <span className={cn(
-                          'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
-                          summary.isComplete
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : summary.total > 0
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-gray-100 text-gray-500'
-                        )}>
-                          {summary.isComplete ? 'Chamada feita' : summary.total > 0 ? 'Chamada parcial' : 'Chamada pendente'}
-                        </span>
+                        {isMakeup ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-800">
+                            <RotateCcw className="h-3 w-3" />
+                            {pendingMakeup === 0 ? 'Reposição concluída' : `${pendingMakeup} pendente${pendingMakeup === 1 ? '' : 's'}`}
+                          </span>
+                        ) : (
+                          <span className={cn(
+                            'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
+                            summary.isComplete
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : summary.total > 0
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-gray-100 text-gray-500'
+                          )}>
+                            {summary.isComplete ? 'Chamada feita' : summary.total > 0 ? 'Chamada parcial' : 'Chamada pendente'}
+                          </span>
+                        )}
                       </div>
+                      {isMakeup && l.makeup_for_lesson && (
+                        <p className="text-xs text-violet-600">Reposição da aula de {formatDate(l.makeup_for_lesson.date)}</p>
+                      )}
                       {l.topic && <p className="text-sm text-gray-500">{l.topic}</p>}
                       {l.module_templates && (
                         <p className="text-xs mt-0.5 flex items-center gap-1 text-indigo-600">
@@ -526,7 +614,7 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, absences, cur
                           {l.module_templates.title}
                         </p>
                       )}
-                      {summary.total > 0 && (
+                      {!isMakeup && summary.total > 0 && (
                         <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
                           <span className="text-green-700">{summary.present} presente{summary.present === 1 ? '' : 's'}</span>
                           <span className="text-red-700">{summary.absent} falta{summary.absent === 1 ? '' : 's'}</span>
@@ -549,7 +637,7 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, absences, cur
                           size="sm"
                           onClick={() => openAttendance(l.id)}
                         >
-                          Chamada
+                          {isMakeup ? 'Registrar reposição' : 'Chamada'}
                         </Button>
                       </div>
                     ) : canViewAttendance ? (
@@ -571,64 +659,84 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, absences, cur
       )}
 
       {activeTab === 'reposicoes' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Faltas</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {absences.length === 0 ? (
-              <p className="px-4 py-8 text-center text-sm text-gray-500">Nenhuma falta registrada nesta turma</p>
-            ) : (
-              <ul className="divide-y divide-gray-50">
-                {absences.map(item => (
-                  <li key={item.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <p className={cn('font-medium text-sm', item.made_up ? 'text-gray-500 line-through' : 'text-gray-900')}>
-                          {item.disciples?.full_name ?? '—'}
-                        </p>
-                        <span className={cn('rounded-full px-1.5 py-0.5 text-[10px] font-medium', ATTENDANCE_COLOR[item.status])}>
-                          {ATTENDANCE_LABEL[item.status]}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        {item.lessons ? formatDate(item.lessons.date) : '—'}
-                        {item.lessons?.topic && ` · ${item.lessons.topic}`}
-                      </p>
-                    </div>
-                    {canManage ? (
-                      <Button
-                        size="sm"
-                        variant={item.made_up ? 'outline' : 'primary'}
-                        loading={makeUpLoadingId === item.id}
-                        onClick={() => toggleMadeUp(item)}
-                      >
-                        {item.made_up ? 'Reposta' : 'Marcar reposição'}
-                      </Button>
-                    ) : (
-                      <span className={cn(
-                        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
-                        item.made_up ? 'bg-gray-100 text-gray-600' : 'bg-yellow-100 text-yellow-800'
-                      )}>
-                        {item.made_up ? 'Reposta' : 'Pendente'}
+        <div className="flex flex-col gap-4">
+          {absences.length === 0 ? (
+            <Card>
+              <CardContent className="p-0">
+                <p className="px-4 py-8 text-center text-sm text-gray-500">Nenhuma falta registrada nesta turma</p>
+              </CardContent>
+            </Card>
+          ) : (
+            pendingAbsencesByLesson.length === 0 ? null : pendingAbsencesByLesson.map(group => (
+              <Card key={group.lesson.id}>
+                <CardHeader className="flex flex-row items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <CardTitle className="text-sm">
+                      {formatDate(group.lesson.date)}{group.lesson.topic && ` · ${group.lesson.topic}`}
+                    </CardTitle>
+                    <p className="text-xs text-gray-500 mt-0.5">{group.items.length} pendente{group.items.length === 1 ? '' : 's'}</p>
+                  </div>
+                  {canManage && (
+                    group.makeupLesson ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2.5 py-1 text-xs font-medium text-violet-800 shrink-0">
+                        <RotateCcw className="h-3 w-3" />
+                        Reposição em {formatDate(group.makeupLesson.date)}
                       </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+                    ) : (
+                      <Button size="sm" variant="outline" className="shrink-0" onClick={() => openMakeupLessonDialog(group.lesson)}>
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        Criar aula de reposição
+                      </Button>
+                    )
+                  )}
+                </CardHeader>
+                <CardContent className="p-0">
+                  <ul className="divide-y divide-gray-50">
+                    {group.items.map(item => (
+                      <li key={item.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                        <div className="min-w-0 flex items-center gap-1.5 flex-wrap">
+                          <p className="font-medium text-sm text-gray-900">{item.disciples?.full_name ?? '—'}</p>
+                          <span className={cn('rounded-full px-1.5 py-0.5 text-[10px] font-medium', ATTENDANCE_COLOR[item.status])}>
+                            {ATTENDANCE_LABEL[item.status]}
+                          </span>
+                        </div>
+                        {canManage ? (
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            loading={makeUpLoadingId === item.id}
+                            onClick={() => toggleMadeUp(item)}
+                          >
+                            Marcar reposição
+                          </Button>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
+                            Pendente
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
       )}
 
-      {/* Modal: nova aula / editar aula */}
+      {/* Modal: nova aula / editar aula / nova aula de reposição */}
       <Dialog
         open={showNewLesson}
-        onClose={() => { setShowNewLesson(false); setEditLesson(null) }}
-        title={editLesson ? 'Editar Aula' : 'Nova Aula'}
+        onClose={() => { setShowNewLesson(false); setEditLesson(null); setMakeupForLessonId(null) }}
+        title={editLesson ? 'Editar Aula' : makeupForLessonId ? 'Nova Aula de Reposição' : 'Nova Aula'}
       >
         <div className="flex flex-col gap-4">
           {error && <Alert type="error">{error}</Alert>}
+          {makeupForLessonId && (
+            <p className="rounded-lg bg-violet-50 px-3 py-2 text-xs text-violet-700">
+              Quem comparecer e for marcado presente aqui tem a falta da aula original convertida direto em presença.
+            </p>
+          )}
           <Input
             label="Data *"
             type="date"
@@ -654,73 +762,113 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, absences, cur
             </p>
           )}
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => { setShowNewLesson(false); setEditLesson(null) }}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { setShowNewLesson(false); setEditLesson(null); setMakeupForLessonId(null) }}>Cancelar</Button>
             <Button onClick={handleSaveLesson} loading={loading}>
-              {editLesson ? 'Salvar alterações' : 'Criar aula'}
+              {editLesson ? 'Salvar alterações' : makeupForLessonId ? 'Criar aula de reposição' : 'Criar aula'}
             </Button>
           </div>
         </div>
       </Dialog>
 
-      {/* Modal: chamada (edição ou só visualização) */}
-      <Dialog
-        open={!!showAttendance}
-        onClose={() => setShowAttendance(null)}
-        title={attendanceReadOnly ? 'Chamada (visualização)' : 'Chamada'}
-        className="max-w-sm"
-      >
-        <div className="flex flex-col gap-3">
-          {(() => {
-            const showAllRoster = attendanceIsNew && !attendanceReadOnly
-            const roster = showAllRoster
-              ? activeEnrollments
-              : activeEnrollments.filter(e => e.disciple_id in attendanceItems)
+      {/* Modal: chamada (normal, reposição, ou só visualização) */}
+      {(() => {
+        const currentLesson = lessons.find(l => l.id === showAttendance)
+        const isMakeup = !!currentLesson?.makeup_for_lesson_id
+        const title = isMakeup
+          ? (attendanceReadOnly ? 'Reposição (visualização)' : 'Registrar Reposição')
+          : (attendanceReadOnly ? 'Chamada (visualização)' : 'Chamada')
 
-            if (attendanceReadOnly && roster.length === 0) {
-              return <p className="text-sm text-gray-500">Chamada ainda não foi registrada nesta aula.</p>
-            }
+        return (
+          <Dialog open={!!showAttendance} onClose={() => setShowAttendance(null)} title={title} className="max-w-sm">
+            <div className="flex flex-col gap-3">
+              {isMakeup ? (() => {
+                const pendingRoster = absences.filter(a => !a.made_up && a.lessons?.id === currentLesson!.makeup_for_lesson_id)
+                if (pendingRoster.length === 0) {
+                  return <p className="text-sm text-gray-500">Todo mundo já repôs esta aula.</p>
+                }
+                return (
+                  <>
+                    <p className="text-sm text-gray-500">
+                      {attendanceReadOnly
+                        ? 'Somente visualização — quem gerencia a turma pode marcar.'
+                        : 'Marque quem compareceu e repôs a falta. Ao salvar, a falta original vira presença.'}
+                    </p>
+                    {pendingRoster.map(item => {
+                      const discipleId = item.disciples?.id
+                      const checked = !!discipleId && makeupResolved.has(discipleId)
+                      const rowClasses = cn(
+                        'flex items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium',
+                        checked ? 'bg-green-100 text-green-800 border-green-300' : 'bg-gray-50 text-gray-700 border-gray-200',
+                        attendanceReadOnly && 'cursor-default opacity-90'
+                      )
+                      return attendanceReadOnly || !discipleId ? (
+                        <div key={item.id} className={rowClasses}>
+                          <span>{item.disciples?.full_name ?? '—'}</span>
+                        </div>
+                      ) : (
+                        <button key={item.id} onClick={() => toggleMakeupResolved(discipleId)} className={rowClasses}>
+                          <span>{item.disciples?.full_name}</span>
+                          <span>{checked ? 'Repôs' : 'Pendente'}</span>
+                        </button>
+                      )
+                    })}
+                  </>
+                )
+              })() : (() => {
+                const showAllRoster = attendanceIsNew && !attendanceReadOnly
+                const roster = showAllRoster
+                  ? activeEnrollments
+                  : activeEnrollments.filter(e => e.disciple_id in attendanceItems)
 
-            return (
-              <>
-                <p className="text-sm text-gray-500">
-                  {attendanceReadOnly
-                    ? 'Somente visualização — quem gerencia a turma pode editar.'
-                    : 'Clique no nome para alternar entre Presente / Falta / Justificada'}
-                </p>
-                {roster.map(e => {
-                  const status = attendanceItems[e.disciple_id] ?? 'FALTA'
-                  const rowClasses = cn(
-                    'flex items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium',
-                    ATTENDANCE_BTN[status],
-                    attendanceReadOnly && 'cursor-default opacity-90'
-                  )
-                  return attendanceReadOnly ? (
-                    <div key={e.disciple_id} className={rowClasses}>
-                      <span>{e.disciples.full_name}</span>
-                      <span>{ATTENDANCE_LABEL[status]}</span>
-                    </div>
-                  ) : (
-                    <button key={e.disciple_id} onClick={() => toggleAttendance(e.disciple_id)} className={rowClasses}>
-                      <span>{e.disciples.full_name}</span>
-                      <span>{ATTENDANCE_LABEL[status]}</span>
-                    </button>
-                  )
-                })}
-              </>
-            )
-          })()}
-          <div className="flex justify-end gap-2 pt-2">
-            {attendanceReadOnly ? (
-              <Button variant="outline" onClick={() => setShowAttendance(null)}>Fechar</Button>
-            ) : (
-              <>
-                <Button variant="outline" onClick={() => setShowAttendance(null)}>Cancelar</Button>
-                <Button onClick={saveAttendance} loading={loading}>Salvar chamada</Button>
-              </>
-            )}
-          </div>
-        </div>
-      </Dialog>
+                if (attendanceReadOnly && roster.length === 0) {
+                  return <p className="text-sm text-gray-500">Chamada ainda não foi registrada nesta aula.</p>
+                }
+
+                return (
+                  <>
+                    <p className="text-sm text-gray-500">
+                      {attendanceReadOnly
+                        ? 'Somente visualização — quem gerencia a turma pode editar.'
+                        : 'Clique no nome para alternar entre Presente / Falta / Justificada'}
+                    </p>
+                    {roster.map(e => {
+                      const status = attendanceItems[e.disciple_id] ?? 'FALTA'
+                      const rowClasses = cn(
+                        'flex items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium',
+                        ATTENDANCE_BTN[status],
+                        attendanceReadOnly && 'cursor-default opacity-90'
+                      )
+                      return attendanceReadOnly ? (
+                        <div key={e.disciple_id} className={rowClasses}>
+                          <span>{e.disciples.full_name}</span>
+                          <span>{ATTENDANCE_LABEL[status]}</span>
+                        </div>
+                      ) : (
+                        <button key={e.disciple_id} onClick={() => toggleAttendance(e.disciple_id)} className={rowClasses}>
+                          <span>{e.disciples.full_name}</span>
+                          <span>{ATTENDANCE_LABEL[status]}</span>
+                        </button>
+                      )
+                    })}
+                  </>
+                )
+              })()}
+              <div className="flex justify-end gap-2 pt-2">
+                {attendanceReadOnly ? (
+                  <Button variant="outline" onClick={() => setShowAttendance(null)}>Fechar</Button>
+                ) : (
+                  <>
+                    <Button variant="outline" onClick={() => setShowAttendance(null)}>Cancelar</Button>
+                    <Button onClick={isMakeup ? saveMakeupAttendance : saveAttendance} loading={loading}>
+                      {isMakeup ? 'Salvar reposição' : 'Salvar chamada'}
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </Dialog>
+        )
+      })()}
     </>
   )
 }

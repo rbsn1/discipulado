@@ -268,6 +268,7 @@ export interface Lesson {
   date: string
   topic: string | null
   module_template_id: string | null
+  makeup_for_lesson_id: string | null
   created_by: string | null
   created_at: string
   updated_at: string

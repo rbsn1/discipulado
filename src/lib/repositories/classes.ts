@@ -150,14 +150,27 @@ export async function unenrollDisciple(
 // attendance_items(id, status) — o status permite montar o resumo de
 // presença/falta/justificada na própria lista de aulas, e decidir se a
 // chamada está de fato completa (todo mundo da turma marcado), não só se
-// tem pelo menos 1 registro.
+// tem pelo menos 1 registro. makeup_for_lesson traz a aula original que
+// essa reposição cobre, quando for o caso.
 export async function getLessons(classId: string) {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('lessons')
-    .select('*, module_templates ( id, title ), attendance_items ( id, status )')
+    .select('*, module_templates ( id, title ), attendance_items ( id, status ), makeup_for_lesson:lessons!makeup_for_lesson_id ( id, date, topic )')
     .eq('class_id', classId)
     .order('date', { ascending: false })
+
+  if (error) throw error
+  return data
+}
+
+export async function getLessonById(id: string): Promise<{ id: string; makeup_for_lesson_id: string | null } | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('lessons')
+    .select('id, makeup_for_lesson_id')
+    .eq('id', id)
+    .maybeSingle()
 
   if (error) throw error
   return data
@@ -168,7 +181,8 @@ export async function createLesson(
   date: string,
   topic: string | undefined,
   moduleTemplateId: string | undefined,
-  createdBy: string
+  createdBy: string,
+  makeupForLessonId?: string | null
 ): Promise<Lesson> {
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -179,12 +193,31 @@ export async function createLesson(
       topic: topic || null,
       module_template_id: moduleTemplateId || null,
       created_by: createdBy,
+      makeup_for_lesson_id: makeupForLessonId || null,
     })
     .select()
     .single()
 
   if (error) throw error
   return data as Lesson
+}
+
+// Reposição em lote: quem compareceu na aula de reposição tem a falta da
+// aula ORIGINAL (p_lesson_id) convertida direto pra presença — não cria
+// registro novo, só resolve o que já existia (decisão explícita: sem
+// duplicar aula contada na frequência).
+export async function resolveMakeupAttendance(
+  originalLessonId: string,
+  discipleIds: string[],
+  markedBy: string
+): Promise<void> {
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('resolve_makeup_attendance', {
+    p_lesson_id: originalLessonId,
+    p_disciple_ids: discipleIds,
+    p_marked_by: markedBy,
+  })
+  if (error) throw error
 }
 
 export async function updateLesson(
@@ -278,11 +311,24 @@ export async function getAbsencesByClass(classId: string): Promise<ClassAbsence[
   return data as unknown as ClassAbsence[]
 }
 
-export async function setAbsenceMadeUp(attendanceItemId: string, madeUp: boolean): Promise<void> {
+// Marcar reposta converte a falta em presença de vez (mesmo racional de
+// resolveMakeupAttendance, só que pra 1 pessoa/1 clique em vez de lote) —
+// por isso não dá pra "desmarcar" de volta pro status original depois
+// (ele não é guardado); em caso de engano, corrige direto reabrindo a
+// chamada da aula original.
+export async function setAbsenceMadeUp(attendanceItemId: string, madeUp: boolean, markedBy?: string): Promise<void> {
   const supabase = await createClient()
+  const updates: Record<string, unknown> = { made_up: madeUp }
+  if (madeUp) {
+    updates.status = 'PRESENTE'
+    if (markedBy) {
+      updates.marked_by = markedBy
+      updates.marked_at = new Date().toISOString()
+    }
+  }
   const { error } = await supabase
     .from('attendance_items')
-    .update({ made_up: madeUp })
+    .update(updates)
     .eq('id', attendanceItemId)
 
   if (error) throw error

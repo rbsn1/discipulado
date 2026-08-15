@@ -25,7 +25,7 @@ export async function POST(
   if (!body.date) return NextResponse.json({ error: 'date obrigatório' }, { status: 400 })
 
   try {
-    const lesson = await createLesson(id, body.date, body.topic, body.module_template_id, profile.id)
+    const lesson = await createLesson(id, body.date, body.topic, body.module_template_id, profile.id, body.makeup_for_lesson_id)
     return NextResponse.json(lesson, { status: 201 })
   } catch (err: unknown) {
     const msg = (err as Error).message
