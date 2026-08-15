@@ -12,7 +12,7 @@ export default async function EventDetailPage({
 }) {
   const profile = await getCurrentProfile()
   if (!profile?.congregation_id) redirect('/painel')
-  if (profile.role === 'DISCIPULADOR') redirect('/painel')
+  if (profile.role === 'DISCIPULADOR') redirect('/acolhimento')
 
   const { id } = await params
   const [event, activeCases, attendedCaseIds, acceptedFbvCaseIds, shifts] = await Promise.all([

@@ -7,7 +7,7 @@ import { TurmasClient } from './client'
 export default async function TurmasPage() {
   const profile = await getCurrentProfile()
   if (!profile?.congregation_id) redirect('/painel')
-  if (profile.role === 'DISCIPULADOR') redirect('/painel')
+  if (profile.role === 'DISCIPULADOR') redirect('/acolhimento')
 
   const [classes, shifts] = await Promise.all([
     getClasses(profile.congregation_id),

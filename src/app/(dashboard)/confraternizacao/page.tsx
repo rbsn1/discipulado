@@ -6,7 +6,7 @@ import { ConfraternizacaoClient } from './client'
 export default async function ConfraternizacaoPage() {
   const profile = await getCurrentProfile()
   if (!profile?.congregation_id) redirect('/painel')
-  if (profile.role === 'DISCIPULADOR') redirect('/painel')
+  if (profile.role === 'DISCIPULADOR') redirect('/acolhimento')
 
   const events = await getEvents(profile.congregation_id)
 

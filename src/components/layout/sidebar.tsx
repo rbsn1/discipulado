@@ -21,7 +21,7 @@ import type { Profile } from '@/types'
 import { ROLE_LABEL } from '@/lib/utils'
 
 const navItems = [
-  { href: '/painel',           label: 'Painel',        icon: LayoutDashboard },
+  { href: '/painel',           label: 'Painel',        icon: LayoutDashboard, acolhedorHidden: true },
   { href: '/discipulandos',    label: 'Acolhimento',   icon: Users           },
   { href: '/confraternizacao', label: 'Boas Vindas',   icon: CalendarDays, acolhedorHidden: true },
   { href: '/turmas',           label: 'Turmas',        icon: BookOpen,     acolhedorHidden: true },

@@ -7,7 +7,7 @@ import { PosDiscipuladoClient } from './client'
 export default async function PosDiscipuladoPage() {
   const profile = await getCurrentProfile()
   if (!profile?.congregation_id) redirect('/painel')
-  if (profile.role === 'DISCIPULADOR') redirect('/painel')
+  if (profile.role === 'DISCIPULADOR') redirect('/acolhimento')
 
   const [result, departments] = await Promise.all([
     getPostDiscipleshipCases(profile.congregation_id),
