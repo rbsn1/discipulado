@@ -1,7 +1,7 @@
 'use client'
 
-import { useActionState } from 'react'
-import { login } from '@/lib/actions/auth'
+import { useActionState, useState } from 'react'
+import { login, requestPasswordReset } from '@/lib/actions/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -58,6 +58,17 @@ const metrics = [
 
 export default function LoginPage() {
   const [error, formAction, isPending] = useActionState(loginAction, null)
+  const [mode, setMode] = useState<'login' | 'recover' | 'recover-sent'>('login')
+  const [recoverEmail, setRecoverEmail] = useState('')
+  const [recoverLoading, setRecoverLoading] = useState(false)
+
+  async function handleRecoverSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setRecoverLoading(true)
+    await requestPasswordReset(recoverEmail)
+    setRecoverLoading(false)
+    setMode('recover-sent')
+  }
 
   return (
     <div className="flex min-h-screen bg-white">
@@ -193,64 +204,143 @@ export default function LoginPage() {
             <p className="text-sm text-gray-500">Plataforma de gestão ministerial</p>
           </div>
 
-          {/* Cabeçalho do formulário */}
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
-              Bem-vindo de volta
-            </h2>
-            <p className="mt-1.5 text-sm text-gray-500">
-              Acesse sua conta para continuar
-            </p>
-          </div>
-
-          {/* Formulário */}
-          <form action={formAction} className="flex flex-col gap-5">
-
-            {/* Erro */}
-            {error && (
-              <div className="flex items-start gap-3 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3">
-                <svg className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <p className="text-sm text-rose-700">{error}</p>
+          {mode === 'login' && (
+            <>
+              {/* Cabeçalho do formulário */}
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
+                  Bem-vindo de volta
+                </h2>
+                <p className="mt-1.5 text-sm text-gray-500">
+                  Acesse sua conta para continuar
+                </p>
               </div>
-            )}
 
-            <div className="flex flex-col gap-4">
-              <Input
-                name="email"
-                type="email"
-                label="E-mail"
-                placeholder="voce@congregacao.com"
-                autoComplete="email"
-                required
-              />
-              <Input
-                name="password"
-                type="password"
-                label="Senha"
-                placeholder="••••••••"
-                autoComplete="current-password"
-                required
-              />
-            </div>
+              {/* Formulário */}
+              <form action={formAction} className="flex flex-col gap-5">
 
-            <Button
-              type="submit"
-              loading={isPending}
-              size="lg"
-              className="mt-1 w-full bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-200 transition-all"
-            >
-              {isPending ? 'Entrando…' : 'Entrar na plataforma'}
-            </Button>
-          </form>
+                {/* Erro */}
+                {error && (
+                  <div className="flex items-start gap-3 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3">
+                    <svg className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <p className="text-sm text-rose-700">{error}</p>
+                  </div>
+                )}
 
-          {/* Rodapé */}
-          <p className="mt-8 text-center text-xs text-gray-400">
-            Acesso exclusivo para membros autorizados.{' '}
-            <br />
-            Em caso de dúvidas, contate o administrador da sua congregação.
-          </p>
+                <div className="flex flex-col gap-4">
+                  <Input
+                    name="email"
+                    type="email"
+                    label="E-mail"
+                    placeholder="voce@congregacao.com"
+                    autoComplete="email"
+                    required
+                  />
+                  <div>
+                    <Input
+                      name="password"
+                      type="password"
+                      label="Senha"
+                      placeholder="••••••••"
+                      autoComplete="current-password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setMode('recover')}
+                      className="mt-2 text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+                    >
+                      Esqueci minha senha
+                    </button>
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  loading={isPending}
+                  size="lg"
+                  className="mt-1 w-full bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-200 transition-all"
+                >
+                  {isPending ? 'Entrando…' : 'Entrar na plataforma'}
+                </Button>
+              </form>
+
+              {/* Rodapé */}
+              <p className="mt-8 text-center text-xs text-gray-400">
+                Acesso exclusivo para membros autorizados.{' '}
+                <br />
+                Em caso de dúvidas, contate o administrador da sua congregação.
+              </p>
+            </>
+          )}
+
+          {mode === 'recover' && (
+            <>
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
+                  Recuperar acesso
+                </h2>
+                <p className="mt-1.5 text-sm text-gray-500">
+                  Informe seu e-mail — o administrador da sua congregação será avisado e vai redefinir sua senha.
+                </p>
+              </div>
+
+              <form onSubmit={handleRecoverSubmit} className="flex flex-col gap-5">
+                <Input
+                  name="recoverEmail"
+                  type="email"
+                  label="E-mail"
+                  placeholder="voce@congregacao.com"
+                  autoComplete="email"
+                  value={recoverEmail}
+                  onChange={e => setRecoverEmail(e.target.value)}
+                  required
+                />
+                <Button
+                  type="submit"
+                  loading={recoverLoading}
+                  size="lg"
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-200 transition-all"
+                >
+                  {recoverLoading ? 'Enviando…' : 'Avisar administrador'}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => setMode('login')}
+                  className="text-center text-xs font-medium text-gray-500 hover:text-gray-700 hover:underline"
+                >
+                  Voltar para o login
+                </button>
+              </form>
+            </>
+          )}
+
+          {mode === 'recover-sent' && (
+            <>
+              <div className="mb-8 text-center">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50">
+                  <svg className="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
+                  Pedido enviado
+                </h2>
+                <p className="mt-1.5 text-sm text-gray-500">
+                  Se esse e-mail existir no sistema, o administrador da sua congregação foi avisado e vai redefinir sua senha em breve. Combine com ele a nova senha por telefone ou WhatsApp.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMode('login')}
+                className="w-full text-center text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+              >
+                Voltar para o login
+              </button>
+            </>
+          )}
 
           {/* Separador + selo de segurança */}
           <div className="mt-8 flex items-center gap-3">

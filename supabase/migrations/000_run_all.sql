@@ -2787,3 +2787,41 @@ from public;
 -- =============================================================
 
 revoke execute on function rls_auto_enable() from public;
+
+-- =============================================================
+-- 029_password_reset_requests.sql
+-- =============================================================
+
+create table password_reset_requests (
+  id              uuid primary key default gen_random_uuid(),
+  profile_id      uuid not null references profiles(id) on delete cascade,
+  congregation_id uuid not null references congregations(id) on delete cascade,
+  requested_at    timestamptz not null default now(),
+  resolved        boolean not null default false,
+  resolved_at     timestamptz,
+  resolved_by     uuid references profiles(id)
+);
+
+create index idx_password_reset_requests_pending
+  on password_reset_requests(congregation_id)
+  where resolved = false;
+
+alter table password_reset_requests enable row level security;
+
+create policy "password_reset_requests_select" on password_reset_requests for select
+  using (
+    is_platform_admin()
+    or (
+      congregation_id = auth_congregation_id()
+      and has_role(array['ADMIN_DISCIPULADO']::user_role[])
+    )
+  );
+
+create policy "password_reset_requests_update" on password_reset_requests for update
+  using (
+    is_platform_admin()
+    or (
+      congregation_id = auth_congregation_id()
+      and has_role(array['ADMIN_DISCIPULADO']::user_role[])
+    )
+  );

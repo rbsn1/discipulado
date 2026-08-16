@@ -18,6 +18,41 @@ export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   return data as Profile
 })
 
+// Respeita RLS (client de sessão) — usado pra confirmar que um perfil alvo
+// pertence à mesma congregação de quem está chamando, antes de uma ação
+// que usa client admin (que ignora RLS) como resetUserPassword.
+export async function getProfileById(id: string): Promise<Profile | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (error) throw error
+  return data as Profile | null
+}
+
+// Client admin: precisa bypassar RLS porque é chamado sem sessão (tela de
+// login, ninguém autenticado ainda) — anon não conseguiria ler profiles.
+export async function getProfileByEmail(email: string): Promise<Profile | null> {
+  const supabase = createAdminClient()
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('email', email)
+    .maybeSingle()
+
+  if (error) throw error
+  return data as Profile | null
+}
+
+export async function resetUserPassword(id: string, newPassword: string): Promise<void> {
+  const supabase = createAdminClient()
+  const { error } = await supabase.auth.admin.updateUserById(id, { password: newPassword })
+  if (error) throw error
+}
+
 export async function getProfilesByCongregation(congregationId: string): Promise<ProfileWithCongregation[]> {
   const supabase = await createClient()
   const { data, error } = await supabase

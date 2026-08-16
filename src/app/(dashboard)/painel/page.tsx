@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/lib/repositories/profiles'
 import { getDashboardStats } from '@/lib/repositories/cases'
+import { getPendingPasswordResetRequests } from '@/lib/repositories/password-reset-requests'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import {
@@ -15,6 +16,7 @@ import {
   PhoneOff,
   ChevronRight,
   Settings,
+  KeyRound,
 } from 'lucide-react'
 
 interface StatCardProps {
@@ -133,7 +135,11 @@ export default async function PainelPage() {
     redirect('/login')
   }
 
-  const stats = await getDashboardStats()
+  const canManageUsers = ['ADMIN_PLATAFORMA', 'ADMIN_DISCIPULADO'].includes(profile.role)
+  const [stats, pendingPasswordResets] = await Promise.all([
+    getDashboardStats(),
+    canManageUsers ? getPendingPasswordResetRequests(profile.congregation_id) : Promise.resolve([]),
+  ])
 
   const statCards: StatCardProps[] = [
     {
@@ -182,7 +188,8 @@ export default async function PainelPage() {
     stats.sem_responsavel > 0 ||
     stats.sem_matricula > 0 ||
     stats.baixa_frequencia > 0 ||
-    stats.sem_contato_recente > 0
+    stats.sem_contato_recente > 0 ||
+    pendingPasswordResets.length > 0
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto">
@@ -210,6 +217,14 @@ export default async function PainelPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-3">
+            <AlertCard
+              title={pendingPasswordResets.length === 1 ? 'pedido de redefinição de senha' : 'pedidos de redefinição de senha'}
+              count={pendingPasswordResets.length}
+              icon={KeyRound}
+              href="/admin/usuarios"
+              description="Pessoas esperando o admin redefinir a senha delas."
+              severity="warning"
+            />
             <AlertCard
               title="sem responsável atribuído"
               count={stats.sem_responsavel}

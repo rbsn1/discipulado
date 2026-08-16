@@ -99,6 +99,17 @@ export interface Profile {
   updated_at: string
 }
 
+export interface PasswordResetRequest {
+  id: string
+  profile_id: string
+  congregation_id: string
+  requested_at: string
+  resolved: boolean
+  resolved_at: string | null
+  resolved_by: string | null
+  profiles: Pick<Profile, 'id' | 'name' | 'email'> | null
+}
+
 export interface ProfileWithCongregation extends Profile {
   congregations: Pick<Congregation, 'id' | 'name'> | null
 }

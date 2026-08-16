@@ -8,9 +8,9 @@ import { Select } from '@/components/ui/select'
 import { Dialog } from '@/components/ui/dialog'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { ROLE_LABEL } from '@/lib/utils'
-import { Plus, Pencil } from 'lucide-react'
-import type { ProfileWithCongregation, UserRole, Profile } from '@/types'
+import { ROLE_LABEL, formatDateTime } from '@/lib/utils'
+import { Plus, Pencil, KeyRound } from 'lucide-react'
+import type { ProfileWithCongregation, UserRole, Profile, PasswordResetRequest } from '@/types'
 
 const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: 'ADMIN_DISCIPULADO', label: 'Admin Discipulado' },
@@ -23,11 +23,12 @@ interface Props {
   profiles: ProfileWithCongregation[]
   congregations: { id: string; name: string }[]
   currentProfile: Profile
+  passwordResetRequests: PasswordResetRequest[]
 }
 
 type Mode = 'create' | 'edit'
 
-export function UsuariosClient({ profiles, congregations, currentProfile }: Props) {
+export function UsuariosClient({ profiles, congregations, currentProfile, passwordResetRequests }: Props) {
   const router = useRouter()
   const [showForm, setShowForm] = useState(false)
   const [mode, setMode] = useState<Mode>('create')
@@ -39,6 +40,11 @@ export function UsuariosClient({ profiles, congregations, currentProfile }: Prop
   const [congregationId, setCongregationId] = useState(currentProfile.congregation_id ?? '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const [resetTarget, setResetTarget] = useState<{ id: string; name: string } | null>(null)
+  const [newPassword, setNewPassword] = useState('')
+  const [resetLoading, setResetLoading] = useState(false)
+  const [resetError, setResetError] = useState('')
 
   const isPlatformAdmin = currentProfile.role === 'ADMIN_PLATAFORMA'
   const roleOptions = isPlatformAdmin
@@ -117,6 +123,30 @@ export function UsuariosClient({ profiles, congregations, currentProfile }: Prop
     if (res.ok) router.refresh()
   }
 
+  function openResetPassword(id: string, name: string) {
+    setResetTarget({ id, name })
+    setNewPassword('')
+    setResetError('')
+  }
+
+  async function handleResetPassword() {
+    if (!resetTarget) return
+    if (newPassword.length < 6) { setResetError('Senha deve ter pelo menos 6 caracteres'); return }
+    setResetLoading(true)
+    setResetError('')
+    const res = await fetch(`/api/admin/users/${resetTarget.id}/password`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: newPassword }),
+    })
+    if (!res.ok) setResetError((await res.json()).error)
+    else {
+      setResetTarget(null)
+      router.refresh()
+    }
+    setResetLoading(false)
+  }
+
   return (
     <>
       <div className="mb-6 flex items-center justify-between">
@@ -128,6 +158,34 @@ export function UsuariosClient({ profiles, congregations, currentProfile }: Prop
       </div>
 
       {error && <Alert type="error" className="mb-4">{error}</Alert>}
+
+      {passwordResetRequests.length > 0 && (
+        <div className="mb-6 rounded-xl border border-amber-100 bg-amber-50 p-4">
+          <p className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-amber-900">
+            <KeyRound className="h-4 w-4" />
+            Pedidos de redefinição de senha
+          </p>
+          <ul className="flex flex-col gap-2">
+            {passwordResetRequests.map(r => (
+              <li key={r.id} className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900">{r.profiles?.name ?? '—'}</p>
+                  <p className="text-xs text-gray-500">{r.profiles?.email} · pedido em {formatDateTime(r.requested_at)}</p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0"
+                  onClick={() => r.profiles && openResetPassword(r.profiles.id, r.profiles.name)}
+                >
+                  <KeyRound className="h-3.5 w-3.5" />
+                  Redefinir senha
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="rounded-xl border border-gray-100 bg-white overflow-x-auto shadow-sm">
         <table className="w-full text-sm">
@@ -168,6 +226,14 @@ export function UsuariosClient({ profiles, congregations, currentProfile }: Prop
                           title="Editar usuário"
                         >
                           <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => openResetPassword(p.id, p.name)}
+                          title="Redefinir senha"
+                        >
+                          <KeyRound className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           size="sm"
@@ -239,6 +305,27 @@ export function UsuariosClient({ profiles, congregations, currentProfile }: Prop
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setShowForm(false)}>Cancelar</Button>
             <Button onClick={handleEdit} loading={loading}>Salvar alterações</Button>
+          </div>
+        </div>
+      </Dialog>
+
+      {/* Dialog redefinir senha */}
+      <Dialog open={!!resetTarget} onClose={() => setResetTarget(null)} title="Redefinir Senha">
+        <div className="flex flex-col gap-4">
+          {resetError && <Alert type="error">{resetError}</Alert>}
+          <p className="text-sm text-gray-600">
+            Nova senha para <strong>{resetTarget?.name}</strong>. Combine a senha com a pessoa por fora (WhatsApp/telefone) depois de salvar.
+          </p>
+          <Input
+            label="Nova senha *"
+            type="password"
+            value={newPassword}
+            onChange={e => setNewPassword(e.target.value)}
+            placeholder="Mínimo 6 caracteres"
+          />
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setResetTarget(null)}>Cancelar</Button>
+            <Button onClick={handleResetPassword} loading={resetLoading}>Redefinir senha</Button>
           </div>
         </div>
       </Dialog>

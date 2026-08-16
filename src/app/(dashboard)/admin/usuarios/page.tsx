@@ -1,4 +1,5 @@
 import { getCurrentProfile, getAllProfiles, getProfilesByCongregation } from '@/lib/repositories/profiles'
+import { getPendingPasswordResetRequests } from '@/lib/repositories/password-reset-requests'
 import { redirect } from 'next/navigation'
 import { UsuariosClient } from './client'
 import { createClient } from '@/lib/supabase/server'
@@ -10,7 +11,7 @@ export default async function UsuariosPage() {
 
   const isPlatformAdmin = profile.role === 'ADMIN_PLATAFORMA'
   const supabase = await createClient()
-  const [profiles, { data: congregations }] = await Promise.all([
+  const [profiles, { data: congregations }, passwordResetRequests] = await Promise.all([
     isPlatformAdmin
       ? getAllProfiles()
       : getProfilesByCongregation(profile.congregation_id!),
@@ -19,6 +20,7 @@ export default async function UsuariosPage() {
       .select('id, name')
       .eq('is_active', true)
       .order('name'),
+    getPendingPasswordResetRequests(isPlatformAdmin ? undefined : profile.congregation_id!),
   ])
 
   return (
@@ -27,6 +29,7 @@ export default async function UsuariosPage() {
         profiles={profiles}
         congregations={congregations ?? []}
         currentProfile={profile}
+        passwordResetRequests={passwordResetRequests}
       />
     </div>
   )
