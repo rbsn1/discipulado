@@ -12,6 +12,7 @@ export default async function AcolhimentoPage({
 }) {
   const profile = await getCurrentProfile()
   if (!profile?.congregation_id) redirect('/painel')
+  if (profile.role === 'SECRETARIA_DISCIPULADO') redirect('/pos-discipulado')
 
   const { status, filter, search, discipulador } = await searchParams
 

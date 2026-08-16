@@ -17,18 +17,22 @@ import {
   X,
 } from 'lucide-react'
 import { logout } from '@/lib/actions/auth'
-import type { Profile } from '@/types'
+import type { Profile, UserRole } from '@/types'
 import { ROLE_LABEL } from '@/lib/utils'
 
-const navItems = [
-  { href: '/painel',           label: 'Painel',        icon: LayoutDashboard, acolhedorHidden: true },
-  { href: '/discipulandos',    label: 'Acolhimento',   icon: Users           },
-  { href: '/confraternizacao', label: 'Boas Vindas',   icon: CalendarDays, acolhedorHidden: true },
-  { href: '/turmas',           label: 'Turmas',        icon: BookOpen,     acolhedorHidden: true },
-  { href: '/pos-discipulado',  label: 'Integração',    icon: Star,         acolhedorHidden: true },
-  { href: '/acolhimento',      label: 'Jornada',       icon: Heart           },
-  { href: '/relatorios',       label: 'Relatórios',    icon: BarChart2,  adminOnly: true },
-  { href: '/admin',            label: 'Administração', icon: Settings,   adminOnly: true },
+// hiddenFor: papéis que não devem ver esse item no menu (cada papel tem seu
+// próprio subconjunto de telas — Acolhedor só vê Acolhimento/Jornada,
+// Secretaria só vê Boas Vindas/Turmas/Integração + o case de cada vida
+// acolhida, que não é item de menu, é acessado via link dessas telas).
+const navItems: { href: string; label: string; icon: React.ElementType; hiddenFor?: UserRole[]; adminOnly?: boolean }[] = [
+  { href: '/painel',           label: 'Painel',        icon: LayoutDashboard, hiddenFor: ['DISCIPULADOR', 'SECRETARIA_DISCIPULADO'] },
+  { href: '/discipulandos',    label: 'Acolhimento',   icon: Users,           hiddenFor: ['SECRETARIA_DISCIPULADO'] },
+  { href: '/confraternizacao', label: 'Boas Vindas',   icon: CalendarDays,    hiddenFor: ['DISCIPULADOR'] },
+  { href: '/turmas',           label: 'Turmas',        icon: BookOpen,        hiddenFor: ['DISCIPULADOR'] },
+  { href: '/pos-discipulado',  label: 'Integração',    icon: Star,            hiddenFor: ['DISCIPULADOR'] },
+  { href: '/acolhimento',      label: 'Jornada',       icon: Heart,           hiddenFor: ['SECRETARIA_DISCIPULADO'] },
+  { href: '/relatorios',       label: 'Relatórios',    icon: BarChart2,       adminOnly: true },
+  { href: '/admin',            label: 'Administração', icon: Settings,        adminOnly: true },
 ]
 
 interface SidebarProps {
@@ -48,9 +52,8 @@ export function Sidebar({ profile, congregationName, theme, open = true, onClose
   const palette  = deriveTheme(theme)
 
   const canAccessAdmin = ['ADMIN_PLATAFORMA', 'ADMIN_DISCIPULADO'].includes(profile.role)
-  const isAcolhedor    = profile.role === 'DISCIPULADOR'
   const visibleItems   = navItems.filter(item =>
-    (!item.adminOnly || canAccessAdmin) && (!item.acolhedorHidden || !isAcolhedor)
+    (!item.adminOnly || canAccessAdmin) && !item.hiddenFor?.includes(profile.role)
   )
 
   return (

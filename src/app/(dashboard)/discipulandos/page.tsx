@@ -12,6 +12,7 @@ export default async function DiscipulandosPage({
 }) {
   const profile = await getCurrentProfile()
   if (!profile?.congregation_id) redirect('/painel')
+  if (profile.role === 'SECRETARIA_DISCIPULADO') redirect('/pos-discipulado')
 
   const { search, status, culto } = await searchParams
   const [disciples, worshipServices, profiles] = await Promise.all([

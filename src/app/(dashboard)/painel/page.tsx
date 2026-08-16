@@ -101,6 +101,10 @@ export default async function PainelPage() {
     redirect('/acolhimento')
   }
 
+  if (profile.role === 'SECRETARIA_DISCIPULADO') {
+    redirect('/pos-discipulado')
+  }
+
   if (profile.role === 'ADMIN_PLATAFORMA' && !profile.congregation_id) {
     return (
       <div className="p-4 md:p-8 max-w-4xl mx-auto">
