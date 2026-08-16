@@ -9,7 +9,7 @@ import { Dialog } from '@/components/ui/dialog'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { ROLE_LABEL, formatDateTime } from '@/lib/utils'
-import { Plus, Pencil, KeyRound } from 'lucide-react'
+import { Plus, Pencil, KeyRound, Copy, Check } from 'lucide-react'
 import type { ProfileWithCongregation, UserRole, Profile, PasswordResetRequest } from '@/types'
 
 const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
@@ -35,16 +35,17 @@ export function UsuariosClient({ profiles, congregations, currentProfile, passwo
   const [editProfileId, setEditProfileId] = useState<string | null>(null)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [role, setRole] = useState<UserRole>('DISCIPULADOR')
   const [congregationId, setCongregationId] = useState(currentProfile.congregation_id ?? '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   const [resetTarget, setResetTarget] = useState<{ id: string; name: string } | null>(null)
-  const [newPassword, setNewPassword] = useState('')
   const [resetLoading, setResetLoading] = useState(false)
   const [resetError, setResetError] = useState('')
+
+  const [revealPassword, setRevealPassword] = useState<{ name: string; password: string } | null>(null)
+  const [copied, setCopied] = useState(false)
 
   const isPlatformAdmin = currentProfile.role === 'ADMIN_PLATAFORMA'
   const roleOptions = isPlatformAdmin
@@ -56,7 +57,6 @@ export function UsuariosClient({ profiles, congregations, currentProfile, passwo
     setEditProfileId(null)
     setName('')
     setEmail('')
-    setPassword('')
     setRole('DISCIPULADOR')
     setCongregationId(currentProfile.congregation_id ?? '')
     setError('')
@@ -68,7 +68,6 @@ export function UsuariosClient({ profiles, congregations, currentProfile, passwo
     setEditProfileId(p.id)
     setName(p.name)
     setEmail(p.email ?? '')
-    setPassword('')
     setRole(p.role)
     setCongregationId((p as any).congregation_id ?? '')
     setError('')
@@ -76,8 +75,8 @@ export function UsuariosClient({ profiles, congregations, currentProfile, passwo
   }
 
   async function handleCreate() {
-    if (!name.trim() || !email.trim() || !password.trim()) {
-      setError('Nome, e-mail e senha são obrigatórios')
+    if (!name.trim() || !email.trim()) {
+      setError('Nome e e-mail são obrigatórios')
       return
     }
     setLoading(true)
@@ -85,11 +84,14 @@ export function UsuariosClient({ profiles, congregations, currentProfile, passwo
     const res = await fetch('/api/admin/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password, role, congregation_id: congregationId || null }),
+      body: JSON.stringify({ name, email, role, congregation_id: congregationId || null }),
     })
-    if (!res.ok) setError((await res.json()).error)
-    else {
+    if (!res.ok) {
+      setError((await res.json()).error)
+    } else {
+      const data = await res.json()
       setShowForm(false)
+      setRevealPassword({ name, password: data.password })
       router.refresh()
     }
     setLoading(false)
@@ -125,26 +127,32 @@ export function UsuariosClient({ profiles, congregations, currentProfile, passwo
 
   function openResetPassword(id: string, name: string) {
     setResetTarget({ id, name })
-    setNewPassword('')
     setResetError('')
   }
 
   async function handleResetPassword() {
     if (!resetTarget) return
-    if (newPassword.length < 6) { setResetError('Senha deve ter pelo menos 6 caracteres'); return }
     setResetLoading(true)
     setResetError('')
     const res = await fetch(`/api/admin/users/${resetTarget.id}/password`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: newPassword }),
     })
-    if (!res.ok) setResetError((await res.json()).error)
-    else {
+    if (!res.ok) {
+      setResetError((await res.json()).error)
+    } else {
+      const data = await res.json()
+      setRevealPassword({ name: resetTarget.name, password: data.password })
       setResetTarget(null)
       router.refresh()
     }
     setResetLoading(false)
+  }
+
+  async function handleCopyPassword() {
+    if (!revealPassword) return
+    await navigator.clipboard.writeText(revealPassword.password)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   return (
@@ -258,7 +266,9 @@ export function UsuariosClient({ profiles, congregations, currentProfile, passwo
           {error && <Alert type="error">{error}</Alert>}
           <Input label="Nome *" value={name} onChange={e => setName(e.target.value)} />
           <Input label="E-mail *" type="email" value={email} onChange={e => setEmail(e.target.value)} />
-          <Input label="Senha inicial *" type="password" value={password} onChange={e => setPassword(e.target.value)} />
+          <p className="rounded-lg bg-indigo-50 px-3 py-2 text-xs text-indigo-700">
+            A senha inicial é gerada automaticamente — você vai poder ver e copiar assim que criar, pra repassar à pessoa por fora (WhatsApp/telefone). No primeiro login, ela será obrigada a trocar.
+          </p>
           <Select
             label="Perfil"
             value={role}
@@ -314,18 +324,30 @@ export function UsuariosClient({ profiles, congregations, currentProfile, passwo
         <div className="flex flex-col gap-4">
           {resetError && <Alert type="error">{resetError}</Alert>}
           <p className="text-sm text-gray-600">
-            Nova senha para <strong>{resetTarget?.name}</strong>. Combine a senha com a pessoa por fora (WhatsApp/telefone) depois de salvar.
+            Gerar uma senha nova pra <strong>{resetTarget?.name}</strong>? Uma senha temporária é criada automaticamente — você vai poder copiá-la na próxima tela pra repassar por fora (WhatsApp/telefone). No próximo login, ela será obrigada a trocar.
           </p>
-          <Input
-            label="Nova senha *"
-            type="password"
-            value={newPassword}
-            onChange={e => setNewPassword(e.target.value)}
-            placeholder="Mínimo 6 caracteres"
-          />
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setResetTarget(null)}>Cancelar</Button>
-            <Button onClick={handleResetPassword} loading={resetLoading}>Redefinir senha</Button>
+            <Button onClick={handleResetPassword} loading={resetLoading}>Gerar nova senha</Button>
+          </div>
+        </div>
+      </Dialog>
+
+      {/* Dialog revelar senha gerada */}
+      <Dialog open={!!revealPassword} onClose={() => setRevealPassword(null)} title="Senha gerada">
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-gray-600">
+            Senha temporária para <strong>{revealPassword?.name}</strong>. Anote ou copie agora — ela só aparece essa vez.
+          </p>
+          <div className="flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
+            <code className="text-base font-semibold tracking-wide text-gray-900">{revealPassword?.password}</code>
+            <Button size="sm" variant="outline" onClick={handleCopyPassword}>
+              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+              {copied ? 'Copiado' : 'Copiar'}
+            </Button>
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={() => setRevealPassword(null)}>Fechar</Button>
           </div>
         </div>
       </Dialog>

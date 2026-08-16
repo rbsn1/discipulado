@@ -3,7 +3,7 @@ import { getCurrentProfile, getProfileById, resetUserPassword } from '@/lib/repo
 import { resolvePasswordResetRequests } from '@/lib/repositories/password-reset-requests'
 
 export async function PATCH(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const profile = await getCurrentProfile()
@@ -12,10 +12,6 @@ export async function PATCH(
   }
 
   const { id } = await params
-  const body = await req.json()
-  if (!body.password || String(body.password).length < 6) {
-    return NextResponse.json({ error: 'Senha deve ter pelo menos 6 caracteres' }, { status: 400 })
-  }
 
   // supabase.auth.admin.* usa service role, que ignora RLS — por isso a
   // checagem de congregação tem que ser feita aqui, não dá pra confiar só
@@ -29,9 +25,9 @@ export async function PATCH(
   }
 
   try {
-    await resetUserPassword(id, body.password)
+    const password = await resetUserPassword(id)
     await resolvePasswordResetRequests(id, profile.id)
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, password })
   } catch (err: unknown) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 })
   }

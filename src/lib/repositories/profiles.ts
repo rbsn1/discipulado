@@ -1,7 +1,21 @@
 import { cache } from 'react'
+import { randomInt } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Profile, ProfileWithCongregation, UserRole } from '@/types'
+
+// Sem caracteres ambíguos (0/O, 1/l/I) — essa senha é lida em voz alta ou
+// digitada de um print de WhatsApp, então precisa ser fácil de repassar
+// sem erro de leitura.
+const TEMP_PASSWORD_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
+
+function generateTempPassword(length = 10): string {
+  let out = ''
+  for (let i = 0; i < length; i++) {
+    out += TEMP_PASSWORD_CHARS[randomInt(TEMP_PASSWORD_CHARS.length)]
+  }
+  return out
+}
 
 export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await createClient()
@@ -47,10 +61,22 @@ export async function getProfileByEmail(email: string): Promise<Profile | null> 
   return data as Profile | null
 }
 
-export async function resetUserPassword(id: string, newPassword: string): Promise<void> {
+// Gera a senha temporária no servidor (nunca o admin digitando uma) e
+// obriga troca no próximo login — a senha só é exibida uma vez, na resposta
+// dessa chamada, pro admin repassar por fora (WhatsApp/telefone).
+export async function resetUserPassword(id: string): Promise<string> {
   const supabase = createAdminClient()
-  const { error } = await supabase.auth.admin.updateUserById(id, { password: newPassword })
+  const password = generateTempPassword()
+  const { error } = await supabase.auth.admin.updateUserById(id, { password })
   if (error) throw error
+
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .update({ must_change_password: true })
+    .eq('id', id)
+  if (profileError) throw profileError
+
+  return password
 }
 
 export async function getProfilesByCongregation(congregationId: string): Promise<ProfileWithCongregation[]> {
@@ -92,15 +118,18 @@ export async function updateProfile(
   return data as Profile
 }
 
+// Mesma lógica de senha temporária de resetUserPassword — quem cria a
+// conta não escolhe a senha, o servidor gera uma e a pessoa troca no
+// primeiro login.
 export async function createUserWithProfile(
   email: string,
-  password: string,
   name: string,
   role: UserRole,
   congregationId: string | null
-): Promise<void> {
+): Promise<string> {
   const supabase = createAdminClient()
-  const { error } = await supabase.auth.admin.createUser({
+  const password = generateTempPassword()
+  const { data, error } = await supabase.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
@@ -111,4 +140,14 @@ export async function createUserWithProfile(
     },
   })
   if (error) throw error
+
+  if (data.user) {
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ must_change_password: true })
+      .eq('id', data.user.id)
+    if (profileError) throw profileError
+  }
+
+  return password
 }

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentProfile } from '@/lib/repositories/profiles'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { getCurrentProfile, createUserWithProfile } from '@/lib/repositories/profiles'
 
 export async function POST(req: NextRequest) {
   const profile = await getCurrentProfile()
@@ -9,8 +8,8 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json()
-  if (!body.email || !body.password || !body.name) {
-    return NextResponse.json({ error: 'Nome, e-mail e senha são obrigatórios' }, { status: 400 })
+  if (!body.email || !body.name) {
+    return NextResponse.json({ error: 'Nome e e-mail são obrigatórios' }, { status: 400 })
   }
 
   // Admin de plataforma só é atribuído manualmente no banco, nunca pela aplicação
@@ -18,18 +17,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Admin de plataforma não pode ser criado pela aplicação' }, { status: 403 })
   }
 
-  const supabase = createAdminClient()
-  const { error } = await supabase.auth.admin.createUser({
-    email: body.email,
-    password: body.password,
-    email_confirm: true,
-    user_metadata: {
-      name: body.name,
-      role: body.role ?? 'DISCIPULADOR',
-      congregation_id: body.congregation_id ?? profile.congregation_id,
-    },
-  })
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-  return NextResponse.json({ success: true }, { status: 201 })
+  try {
+    const password = await createUserWithProfile(
+      body.email,
+      body.name,
+      body.role ?? 'DISCIPULADOR',
+      body.congregation_id ?? profile.congregation_id
+    )
+    return NextResponse.json({ success: true, password }, { status: 201 })
+  } catch (err: unknown) {
+    return NextResponse.json({ error: (err as Error).message }, { status: 400 })
+  }
 }

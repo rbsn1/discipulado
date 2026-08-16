@@ -38,6 +38,30 @@ export async function requestPasswordReset(email: string): Promise<void> {
   }
 }
 
+// Chamado pela pessoa já autenticada (com a senha temporária) na tela de
+// troca obrigatória — atualiza a própria senha e libera o acesso ao resto
+// do app, desligando must_change_password.
+export async function changeOwnPassword(newPassword: string): Promise<{ error?: string }> {
+  if (newPassword.length < 6) {
+    return { error: 'Senha deve ter pelo menos 6 caracteres' }
+  }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Não autenticado' }
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword })
+  if (error) return { error: error.message }
+
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .update({ must_change_password: false })
+    .eq('id', user.id)
+  if (profileError) return { error: profileError.message }
+
+  return {}
+}
+
 export async function logout() {
   const supabase = await createClient()
   await supabase.auth.signOut()

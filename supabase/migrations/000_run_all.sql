@@ -2825,3 +2825,11 @@ create policy "password_reset_requests_update" on password_reset_requests for up
       and has_role(array['ADMIN_DISCIPULADO']::user_role[])
     )
   );
+
+-- =============================================================
+-- 030_must_change_password.sql
+-- =============================================================
+
+
+alter table profiles
+  add column if not exists must_change_password boolean not null default false;

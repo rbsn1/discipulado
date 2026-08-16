@@ -3,12 +3,19 @@ import { getCurrentProfile } from '@/lib/repositories/profiles'
 import { getMyAccessStatus } from '@/lib/repositories/congregations'
 import { createClient } from '@/lib/supabase/server'
 import { DashboardShell } from '@/components/layout/dashboard-shell'
+import { ForcePasswordChange } from '@/components/features/auth/force-password-change'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const profile = await getCurrentProfile()
 
   if (!profile) redirect('/login')
   if (!profile.is_active) redirect('/login')
+
+  // Senha definida pelo admin (criação de conta ou redefinição) — obriga
+  // trocar antes de liberar qualquer tela do dashboard.
+  if (profile.must_change_password) {
+    return <ForcePasswordChange />
+  }
 
   if (profile.role !== 'ADMIN_PLATAFORMA') {
     const access = await getMyAccessStatus()
