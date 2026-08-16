@@ -2833,3 +2833,111 @@ create policy "password_reset_requests_update" on password_reset_requests for up
 
 alter table profiles
   add column if not exists must_change_password boolean not null default false;
+
+-- =============================================================
+-- 031_report_improvements.sql
+-- =============================================================
+
+-- =============================================================
+
+create or replace function get_report_stats(
+  p_start date default null,
+  p_end   date default null
+)
+returns table (
+  total_cases            int,
+  acolhimento            int,
+  em_discipulado         int,
+  pausado                int,
+  concluido              int,
+  sem_departamento       int,
+  aguardando_confirmacao int,
+  confirmados            int,
+  batizados              int
+)
+language sql stable security definer
+set search_path = public
+as $$
+  select
+    count(*)::int,
+    count(*) filter (
+      where dc.stage = 'ACOLHIMENTO' and dc.status <> 'CONCLUIDO'
+    )::int,
+    count(*) filter (where dc.status = 'EM_DISCIPULADO')::int,
+    count(*) filter (where dc.status = 'PAUSADO')::int,
+    count(*) filter (where dc.status = 'CONCLUIDO')::int,
+    count(*) filter (
+      where dc.status = 'CONCLUIDO'
+      and pd.department_id is null
+    )::int,
+    count(*) filter (
+      where dc.status = 'CONCLUIDO'
+      and pd.department_id is not null
+      and pd.department_contacted_at is null
+    )::int,
+    count(*) filter (
+      where dc.status = 'CONCLUIDO' and pd.department_contacted_at is not null
+    )::int,
+    count(*) filter (
+      where dc.status = 'CONCLUIDO' and pd.baptism_status = 'BATIZADO'
+    )::int
+  from discipleship_cases dc
+  left join post_discipleship pd on pd.case_id = dc.id
+  where dc.congregation_id = auth_congregation_id()
+    and (p_start is null or dc.created_at >= p_start)
+    and (p_end   is null or dc.created_at < (p_end + interval '1 day'));
+$$;
+
+create or replace function get_report_stats_by_assignee(
+  p_start date default null,
+  p_end   date default null
+)
+returns table (
+  assigned_to    uuid,
+  assignee_name  text,
+  total          int,
+  concluido      int,
+  taxa_conclusao numeric
+)
+language sql stable security definer
+set search_path = public
+as $$
+  select
+    dc.assigned_to,
+    coalesce(p.name, 'Sem responsável') as assignee_name,
+    count(*)::int as total,
+    count(*) filter (where dc.status = 'CONCLUIDO')::int as concluido,
+    case when count(*) > 0
+      then round((count(*) filter (where dc.status = 'CONCLUIDO')::numeric / count(*)) * 100, 1)
+      else 0
+    end as taxa_conclusao
+  from discipleship_cases dc
+  left join profiles p on p.id = dc.assigned_to
+  where dc.congregation_id = auth_congregation_id()
+    and (p_start is null or dc.created_at >= p_start)
+    and (p_end   is null or dc.created_at < (p_end + interval '1 day'))
+  group by dc.assigned_to, p.name
+  order by total desc;
+$$;
+
+-- =============================================================
+-- 032_drop_old_report_stats_overload.sql
+-- =============================================================
+
+
+drop function if exists get_report_stats();
+
+-- =============================================================
+-- 033_report_stats_revoke_anon.sql
+-- =============================================================
+
+
+revoke execute on function get_report_stats(date, date) from anon;
+revoke execute on function get_report_stats_by_assignee(date, date) from anon;
+
+-- =============================================================
+-- 034_report_stats_revoke_public.sql
+-- =============================================================
+
+revoke execute on function get_report_stats(date, date) from public;
+revoke execute on function get_report_stats_by_assignee(date, date) from public;
