@@ -102,7 +102,6 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, absences, cur
   const [editLesson, setEditLesson] = useState<Lesson | null>(null)
   const [showAttendance, setShowAttendance] = useState<string | null>(null)
   const [attendanceItems, setAttendanceItems] = useState<Record<string, AttendanceStatus>>({})
-  const [attendanceIsNew, setAttendanceIsNew] = useState(true)
   const [attendanceReadOnly, setAttendanceReadOnly] = useState(false)
   const [makeupResolved, setMakeupResolved] = useState<Set<string>>(new Set())
   const [makeupForLessonId, setMakeupForLessonId] = useState<string | null>(null)
@@ -330,20 +329,17 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, absences, cur
       const real = existing.filter(a => !a.pre_enrollment)
       const map: Record<string, AttendanceStatus> = {}
       real.forEach(a => { map[a.disciple_id] = a.status })
-      // Só completa com falta padrão quem falta marcar na PRIMEIRA vez que a
-      // chamada dessa aula é feita — e só em modo de edição. Reabrir uma
-      // chamada já salva (ou abrir em modo leitura) não pode inserir registro
-      // novo pra quem não fazia parte dela (ex.: aluno matriculado depois
-      // daquela aula) — isso inflava a frequência de gente que nem estava na
-      // turma naquele dia, só porque está ativa hoje. rosterAsOf já garante
-      // isso também não incluindo quem se matriculou depois desta aula.
-      const isNew = real.length === 0
-      if (isNew && !readOnly) {
+      // Completa com falta padrão quem do quadro daquela data ainda não tem
+      // status — em modo de edição, seja a chamada nova ou reaberta depois
+      // (ex.: alguém ficou de fora na primeira vez e a chamada ficou parcial
+      // pra sempre, sem jeito de voltar e marcar essa pessoa). rosterAsOf já
+      // exclui quem se matriculou depois desta aula, então isso não infla a
+      // frequência de quem nem estava na turma naquele dia.
+      if (!readOnly) {
         rosterAsOf(lesson.date, activeEnrollments).forEach(e => {
           if (!map[e.disciple_id]) map[e.disciple_id] = 'FALTA'
         })
       }
-      setAttendanceIsNew(isNew)
       setAttendanceItems(map)
     }
   }
@@ -836,10 +832,14 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, absences, cur
                   </>
                 )
               })() : (() => {
-                const showAllRoster = attendanceIsNew && !attendanceReadOnly
-                const roster = showAllRoster
-                  ? rosterAsOf(currentLesson!.date, activeEnrollments)
-                  : activeEnrollments.filter(e => e.disciple_id in attendanceItems)
+                // Em edição, mostra sempre o quadro completo daquela data (quem
+                // ficou sem marcar aparece com falta padrão, ver openAttendance) —
+                // não só quem já tinha registro, senão não dá pra completar uma
+                // chamada parcial depois da primeira vez. Em visualização, só quem
+                // já tem registro de verdade.
+                const roster = attendanceReadOnly
+                  ? activeEnrollments.filter(e => e.disciple_id in attendanceItems)
+                  : rosterAsOf(currentLesson.date, activeEnrollments)
 
                 if (attendanceReadOnly && roster.length === 0) {
                   return <p className="text-sm text-gray-500">Chamada ainda não foi registrada nesta aula.</p>
