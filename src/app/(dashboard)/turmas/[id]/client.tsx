@@ -791,7 +791,10 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, absences, cur
       {/* Modal: chamada (normal, reposição, ou só visualização) */}
       {(() => {
         const currentLesson = lessons.find(l => l.id === showAttendance)
-        const isMakeup = !!currentLesson?.makeup_for_lesson_id
+        // O conteúdo do modal é calculado a cada render, mesmo fechado
+        // (showAttendance null) — sem essa aula não tem o que montar.
+        if (!currentLesson) return null
+        const isMakeup = !!currentLesson.makeup_for_lesson_id
         const title = isMakeup
           ? (attendanceReadOnly ? 'Reposição (visualização)' : 'Registrar Reposição')
           : (attendanceReadOnly ? 'Chamada (visualização)' : 'Chamada')
