@@ -293,6 +293,7 @@ export interface AttendanceItem {
   status: AttendanceStatus
   note: string | null
   made_up: boolean
+  pre_enrollment: boolean
   marked_at: string
   marked_by: string | null
   created_at: string

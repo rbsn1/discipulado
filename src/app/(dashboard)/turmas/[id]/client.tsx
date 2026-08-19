@@ -9,7 +9,7 @@ import { Select } from '@/components/ui/select'
 import { Dialog } from '@/components/ui/dialog'
 import { Alert } from '@/components/ui/alert'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ATTENDANCE_LABEL, ATTENDANCE_COLOR, formatDate, cn } from '@/lib/utils'
+import { ATTENDANCE_LABEL, absenceLabel, absenceColor, formatDate, cn } from '@/lib/utils'
 import { Plus, ChevronRight, CalendarDays, Users, CheckCircle, X, Minus, Search, UserMinus, UserPlus, Pencil, RotateCcw } from 'lucide-react'
 import type { Profile, ModuleTemplate, AttendanceStatus, CaseListItem } from '@/types'
 import type { ClassAbsence } from '@/lib/repositories/classes'
@@ -20,6 +20,7 @@ interface Enrollment {
   id: string
   disciple_id: string
   active: boolean
+  enrolled_at: string
   disciples: { id: string; full_name: string; phone?: string; discipleship_cases?: { id: string; status: string; attendance_rate: number; total_lessons: number }[] }
 }
 
@@ -28,16 +29,26 @@ interface Lesson {
   date: string
   topic: string | null
   module_templates?: { id: string; title: string } | null
-  attendance_items?: { id: string; status: AttendanceStatus }[]
+  attendance_items?: { id: string; status: AttendanceStatus; pre_enrollment: boolean }[]
   makeup_for_lesson_id?: string | null
   makeup_for_lesson?: { id: string; date: string; topic: string | null } | null
 }
 
+// Quem já estava matriculado até a data desta aula — evita que uma aula
+// antiga apareça incompleta só porque uma vida nova entrou na turma depois
+// dela (rosterSize contava sempre os matriculados de HOJE).
+function rosterAsOf(lessonDate: string, enrollments: Enrollment[]) {
+  return enrollments.filter(e => e.enrolled_at.slice(0, 10) <= lessonDate)
+}
+
 // Resumo de presença de uma aula + se a chamada está de fato completa —
-// "completa" exige que todo mundo do quadro atual da turma tenha status
-// marcado, não só que exista 1 registro (isso escondia chamada pela metade).
+// "completa" exige que todo mundo que já estava matriculado na data desta
+// aula tenha status marcado, não só que exista 1 registro (isso escondia
+// chamada pela metade). Ignora pendências sintéticas de matrícula tardia
+// (pre_enrollment) — elas não são presença/falta real desse dia, só controle
+// de reposição (ver aba Reposições).
 function getLessonSummary(lesson: Lesson, rosterSize: number) {
-  const items = lesson.attendance_items ?? []
+  const items = (lesson.attendance_items ?? []).filter(i => !i.pre_enrollment)
   const present = items.filter(i => i.status === 'PRESENTE').length
   const absent = items.filter(i => i.status === 'FALTA').length
   const justified = items.filter(i => i.status === 'JUSTIFICADA').length
@@ -151,7 +162,7 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, absences, cur
         const matchesPeriod = !lessonPeriodStart || !lessonPeriodEnd || (!isBefore(lDate, lessonPeriodStart) && !isAfter(lDate, lessonPeriodEnd))
         return matchesSearch && matchesPeriod
       })
-    : lessons.filter(l => !(getLessonSummary(l, activeEnrollments.length).isComplete && isBefore(parseISO(l.date), today)))
+    : lessons.filter(l => !(getLessonSummary(l, rosterAsOf(l.date, activeEnrollments).length).isComplete && isBefore(parseISO(l.date), today)))
 
   async function loadLessons() {
     if (lessonLoaded) return
@@ -303,25 +314,32 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, absences, cur
     // ali resolve direto a falta da aula ORIGINAL (ver saveMakeupAttendance),
     // então não faz sentido buscar/pré-preencher chamada normal aqui.
     const lesson = lessons.find(l => l.id === lessonId)
-    if (lesson?.makeup_for_lesson_id) {
+    if (!lesson) return
+    if (lesson.makeup_for_lesson_id) {
       setMakeupResolved(new Set())
       return
     }
 
     const res = await fetch(`/api/lessons/${lessonId}/attendance`)
     if (res.ok) {
-      const existing: Array<{ disciple_id: string; status: AttendanceStatus }> = await res.json()
+      const existing: Array<{ disciple_id: string; status: AttendanceStatus; pre_enrollment: boolean }> = await res.json()
+      // Pendências sintéticas de matrícula tardia (pre_enrollment) não são
+      // chamada de verdade dessa aula — ficam de fora daqui, só aparecem na
+      // aba Reposições. Sem isso, a existência delas faria a chamada real
+      // parecer "já feita" e pularia o preenchimento automático abaixo.
+      const real = existing.filter(a => !a.pre_enrollment)
       const map: Record<string, AttendanceStatus> = {}
-      existing.forEach(a => { map[a.disciple_id] = a.status })
+      real.forEach(a => { map[a.disciple_id] = a.status })
       // Só completa com falta padrão quem falta marcar na PRIMEIRA vez que a
       // chamada dessa aula é feita — e só em modo de edição. Reabrir uma
       // chamada já salva (ou abrir em modo leitura) não pode inserir registro
       // novo pra quem não fazia parte dela (ex.: aluno matriculado depois
       // daquela aula) — isso inflava a frequência de gente que nem estava na
-      // turma naquele dia, só porque está ativa hoje.
-      const isNew = existing.length === 0
+      // turma naquele dia, só porque está ativa hoje. rosterAsOf já garante
+      // isso também não incluindo quem se matriculou depois desta aula.
+      const isNew = real.length === 0
       if (isNew && !readOnly) {
-        activeEnrollments.forEach(e => {
+        rosterAsOf(lesson.date, activeEnrollments).forEach(e => {
           if (!map[e.disciple_id]) map[e.disciple_id] = 'FALTA'
         })
       }
@@ -576,7 +594,7 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, absences, cur
           ) : visibleLessons.length === 0 ? null : (
             <div className="flex flex-col gap-3">
               {visibleLessons.map(l => {
-                const summary = getLessonSummary(l, activeEnrollments.length)
+                const summary = getLessonSummary(l, rosterAsOf(l.date, activeEnrollments).length)
                 const isMakeup = !!l.makeup_for_lesson_id
                 const pendingMakeup = isMakeup
                   ? absences.filter(a => !a.made_up && a.lessons?.id === l.makeup_for_lesson_id).length
@@ -696,8 +714,8 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, absences, cur
                       <li key={item.id} className="flex items-center justify-between gap-3 px-4 py-3">
                         <div className="min-w-0 flex items-center gap-1.5 flex-wrap">
                           <p className="font-medium text-sm text-gray-900">{item.disciples?.full_name ?? '—'}</p>
-                          <span className={cn('rounded-full px-1.5 py-0.5 text-[10px] font-medium', ATTENDANCE_COLOR[item.status])}>
-                            {ATTENDANCE_LABEL[item.status]}
+                          <span className={cn('rounded-full px-1.5 py-0.5 text-[10px] font-medium', absenceColor(item))}>
+                            {absenceLabel(item)}
                           </span>
                         </div>
                         {canManage ? (
@@ -817,7 +835,7 @@ export function TurmaDetailClient({ turma, modules, eligibleCases, absences, cur
               })() : (() => {
                 const showAllRoster = attendanceIsNew && !attendanceReadOnly
                 const roster = showAllRoster
-                  ? activeEnrollments
+                  ? rosterAsOf(currentLesson!.date, activeEnrollments)
                   : activeEnrollments.filter(e => e.disciple_id in attendanceItems)
 
                 if (attendanceReadOnly && roster.length === 0) {

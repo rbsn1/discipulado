@@ -18,8 +18,8 @@ import {
   CASE_STAGE_LABEL,
   MODULE_STATUS_LABEL,
   MODULE_STATUS_COLOR,
-  ATTENDANCE_COLOR,
-  ATTENDANCE_LABEL,
+  absenceColor,
+  absenceLabel,
   formatDate,
   formatDateTime,
   getAttendanceCriticality,
@@ -503,8 +503,8 @@ export function DiscipleDetailClient({
                           <p className={cn('font-medium', item.made_up ? 'text-gray-500 line-through' : 'text-gray-900')}>
                             {item.lessons ? formatDate(item.lessons.date) : '—'}
                           </p>
-                          <span className={cn('rounded-full px-1.5 py-0.5 text-[10px] font-medium', ATTENDANCE_COLOR[item.status])}>
-                            {ATTENDANCE_LABEL[item.status]}
+                          <span className={cn('rounded-full px-1.5 py-0.5 text-[10px] font-medium', absenceColor(item))}>
+                            {absenceLabel(item)}
                           </span>
                         </div>
                         {item.lessons?.topic && (

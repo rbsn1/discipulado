@@ -156,7 +156,7 @@ export async function getLessons(classId: string) {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('lessons')
-    .select('*, module_templates ( id, title ), attendance_items ( id, status ), makeup_for_lesson:lessons!makeup_for_lesson_id ( id, date, topic )')
+    .select('*, module_templates ( id, title ), attendance_items ( id, status, pre_enrollment ), makeup_for_lesson:lessons!makeup_for_lesson_id ( id, date, topic )')
     .eq('class_id', classId)
     .order('date', { ascending: false })
 
@@ -266,6 +266,7 @@ export interface Absence {
   status: AttendanceStatus
   note: string | null
   made_up: boolean
+  pre_enrollment: boolean
   lessons: { id: string; date: string; topic: string | null } | null
 }
 
@@ -278,7 +279,7 @@ export async function getAbsences(discipleId: string): Promise<Absence[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('attendance_items')
-    .select('id, status, note, made_up, lessons ( id, date, topic )')
+    .select('id, status, note, made_up, pre_enrollment, lessons ( id, date, topic )')
     .eq('disciple_id', discipleId)
     .in('status', ['FALTA', 'JUSTIFICADA'])
     .order('date', { referencedTable: 'lessons', ascending: false })
@@ -291,6 +292,7 @@ export interface ClassAbsence {
   id: string
   status: AttendanceStatus
   made_up: boolean
+  pre_enrollment: boolean
   disciples: { id: string; full_name: string } | null
   lessons: { id: string; date: string; topic: string | null } | null
 }
@@ -302,7 +304,7 @@ export async function getAbsencesByClass(classId: string): Promise<ClassAbsence[
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('attendance_items')
-    .select('id, status, made_up, disciples ( id, full_name ), lessons!inner ( id, date, topic, class_id )')
+    .select('id, status, made_up, pre_enrollment, disciples ( id, full_name ), lessons!inner ( id, date, topic, class_id )')
     .in('status', ['FALTA', 'JUSTIFICADA'])
     .eq('lessons.class_id', classId)
     .order('date', { referencedTable: 'lessons', ascending: false })

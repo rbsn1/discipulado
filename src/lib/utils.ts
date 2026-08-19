@@ -68,6 +68,17 @@ export const ATTENDANCE_COLOR: Record<AttendanceStatus, string> = {
   JUSTIFICADA: 'bg-yellow-100 text-yellow-800',
 }
 
+// Falta pendente de reposição por ter sido matriculado depois daquela aula
+// não é uma falta de verdade (ninguém marcou ausência) — rótulo e cor
+// próprios pra não parecer que o discipulador registrou uma falta à toa.
+export function absenceLabel(item: { status: AttendanceStatus; pre_enrollment?: boolean }): string {
+  return item.pre_enrollment ? 'Matriculado depois' : ATTENDANCE_LABEL[item.status]
+}
+
+export function absenceColor(item: { status: AttendanceStatus; pre_enrollment?: boolean }): string {
+  return item.pre_enrollment ? 'bg-blue-100 text-blue-800' : ATTENDANCE_COLOR[item.status]
+}
+
 export const MODULE_STATUS_LABEL: Record<ModuleProgressStatus, string> = {
   NAO_INICIADO: 'Não Iniciado',
   EM_ANDAMENTO: 'Em Andamento',
