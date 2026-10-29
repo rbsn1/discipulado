@@ -53,7 +53,6 @@ interface Props {
   event: EventDetail
   activeCases: CaseListItem[]
   attendedCaseIds: string[]
-  acceptedFbvCaseIds: string[]
   shifts: ClassShiftCatalog[]
   currentProfile: Profile
 }
@@ -68,7 +67,7 @@ const STATUS_CONFIG: Record<EventStatus, { label: string; icon: React.ElementTyp
 
 // ─── Componente principal ────────────────────────────────────────────────────
 
-export function EventDetailClient({ event, activeCases, attendedCaseIds, acceptedFbvCaseIds, shifts, currentProfile }: Props) {
+export function EventDetailClient({ event, activeCases, attendedCaseIds, shifts, currentProfile }: Props) {
   const router = useRouter()
 
   const [loading, setLoading] = useState<string | null>(null)
@@ -94,7 +93,6 @@ export function EventDetailClient({ event, activeCases, attendedCaseIds, accepte
     [event.event_confirmations]
   )
   const attendedElsewhereIds = useMemo(() => new Set(attendedCaseIds), [attendedCaseIds])
-  const acceptedFbvIds = useMemo(() => new Set(acceptedFbvCaseIds), [acceptedFbvCaseIds])
 
   const shiftOptions = useMemo(() => [
     { value: '', label: 'Não informado' },
@@ -123,9 +121,9 @@ export function EventDetailClient({ event, activeCases, attendedCaseIds, accepte
 
   const eligibleCases = useMemo(
     () => activeCases.filter(c =>
-      acceptedFbvIds.has(c.id) && !confirmedCaseIds.has(c.id) && !attendedElsewhereIds.has(c.id)
+      !confirmedCaseIds.has(c.id) && !attendedElsewhereIds.has(c.id)
     ),
-    [activeCases, confirmedCaseIds, attendedElsewhereIds, acceptedFbvIds]
+    [activeCases, confirmedCaseIds, attendedElsewhereIds]
   )
 
   const unconfirmedCases = useMemo(() => {
@@ -288,7 +286,7 @@ export function EventDetailClient({ event, activeCases, attendedCaseIds, accepte
       )}
 
       {/* ── Totais ── */}
-      <div className="mb-4 flex items-center gap-4 text-sm text-gray-600">
+      <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600">
         <span><strong className="text-gray-900">{event.event_confirmations.length}</strong> na lista</span>
         <span><strong className="text-gray-900">{totalConfirmed}</strong> confirmados</span>
         <span><strong className="text-emerald-700">{totalAttended}</strong> presentes</span>
@@ -414,7 +412,7 @@ export function EventDetailClient({ event, activeCases, attendedCaseIds, accepte
 
           {unconfirmedCases.length === 0 ? (
             <p className="px-4 py-6 text-center text-sm text-gray-500">
-              {addSearch ? 'Nenhuma vida acolhida encontrada' : 'Todas as vidas acolhidas que aceitaram participar da FBV já foram adicionadas ou já participaram de uma Festa de Boas Vindas'}
+              {addSearch ? 'Nenhuma vida acolhida encontrada' : 'Todas as vidas acolhidas já foram adicionadas ou já participaram de uma confraternização'}
             </p>
           ) : (
             <div className="overflow-x-auto">

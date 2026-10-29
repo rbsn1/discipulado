@@ -24,7 +24,7 @@ export async function POST(
   if (!body.outcome) return NextResponse.json({ error: 'outcome é obrigatório' }, { status: 400 })
 
   try {
-    await addContactAttempt(id, body.outcome, body.note, profile.id)
+    await addContactAttempt(id, body.outcome, body.note, profile.id, body.preferred_shift_id)
     return NextResponse.json({ success: true })
   } catch (err: unknown) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 })

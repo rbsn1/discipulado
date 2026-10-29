@@ -162,6 +162,7 @@ export interface DiscipleshipCase {
   assigned_to: string | null
   welcomed_on: string | null
   notes: string | null
+  preferred_shift_id: string | null
   total_lessons: number
   present_count: number
   justified_count: number
@@ -187,6 +188,7 @@ export interface CaseListItem {
   status: CaseStatus
   assigned_to: string | null
   welcomed_on: string | null
+  preferred_shift_id: string | null
   last_contact_at: string | null
   attendance_rate: number
   created_at: string
@@ -383,6 +385,7 @@ export interface StartCaseInput {
   assigned_to?: string
   welcomed_on?: string
   notes?: string
+  preferred_shift_id?: string
 }
 
 export interface CreateLessonInput {

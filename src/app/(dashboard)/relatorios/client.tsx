@@ -400,7 +400,43 @@ export function RelatoriosClient({ stats, cases, monthly, byAssignee, initialSta
       {/* Tabela de concluídos */}
       <div>
         <h2 className="text-sm font-semibold text-gray-700 mb-3">Histórico de concluídos</h2>
-        <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+        {/* Celular: cards empilhados; a tabela só aparece a partir de md */}
+        <ul className="space-y-2 md:hidden">
+          {cases.length === 0 && (
+            <li className="rounded-xl border border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-400">
+              Nenhum concluído {hasPeriod ? 'nesse período' : 'ainda'}
+            </li>
+          )}
+          {cases.map(c => {
+            const integ = integrationLabel(c)
+            const bapt = baptismLabel(c.baptism_status)
+            return (
+              <li key={c.id} className="rounded-xl border border-gray-200 bg-white p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <Link href={`/discipulandos/${c.disciple_id}`} className="font-medium text-blue-600 hover:underline">
+                      {c.disciple_name}
+                    </Link>
+                    {c.disciple_phone && <p className="text-xs text-gray-400">{c.disciple_phone}</p>}
+                  </div>
+                  <span className="shrink-0 text-xs text-gray-400">{c.concluded_at ? formatDate(c.concluded_at) : '—'}</span>
+                </div>
+                <p className="mt-2 text-xs text-gray-600">
+                  {c.discipulador ?? '—'} · {c.department_name ?? 'Sem departamento'}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${integ.cls}`}>
+                    {integ.label}
+                  </span>
+                  {bapt && (
+                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${bapt.cls}`}>{bapt.label}</span>
+                  )}
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+        <div className="hidden rounded-xl border border-gray-200 bg-white overflow-hidden md:block">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>

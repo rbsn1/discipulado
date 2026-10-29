@@ -249,7 +249,58 @@ export function DisciplesClientPage({
         )}
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white overflow-x-auto">
+      {/* Celular: cards empilhados; a tabela só aparece a partir de md */}
+      <ul className="space-y-2 md:hidden">
+        {disciples.length === 0 && (
+          <li className="rounded-lg border border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-500">
+            Nenhuma vida acolhida encontrada
+          </li>
+        )}
+        {disciples.map(d => {
+          const activeCase = d.discipleship_cases?.[0]
+          const turmaAtiva = d.class_enrollments?.find(e => e.active)?.classes
+          return (
+            <li key={d.id}>
+              <Link
+                href={`/discipulandos/${d.id}`}
+                className="block rounded-lg border border-gray-200 bg-white p-4 active:bg-gray-50"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <p className="font-medium text-blue-600">{d.full_name}</p>
+                  {activeCase ? (
+                    <span className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${CASE_STATUS_COLOR[activeCase.status]}`}>
+                      {CASE_STATUS_LABEL[activeCase.status]}
+                    </span>
+                  ) : (
+                    <span className="shrink-0 text-xs text-gray-400">Sem case</span>
+                  )}
+                </div>
+                {d.phone && <p className="mt-1 text-sm text-gray-600">{d.phone}</p>}
+                <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                  <div>
+                    <dt className="text-gray-400">Culto</dt>
+                    <dd className="truncate text-gray-700">{d.worship_services?.name ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-gray-400">Turma</dt>
+                    <dd className="truncate text-gray-700">{turmaAtiva?.name ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-gray-400">Responsável</dt>
+                    <dd className="truncate text-gray-700">{activeCase?.profiles?.name ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-gray-400">Cadastro</dt>
+                    <dd className="text-gray-700">{formatDate(d.created_at)}</dd>
+                  </div>
+                </dl>
+              </Link>
+            </li>
+          )
+        })}
+      </ul>
+
+      <div className="hidden rounded-lg border border-gray-200 bg-white overflow-x-auto md:block">
         <table className="w-full text-sm min-w-[880px]">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">

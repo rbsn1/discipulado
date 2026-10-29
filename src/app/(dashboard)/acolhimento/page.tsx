@@ -2,6 +2,7 @@ import { getCurrentProfile } from '@/lib/repositories/profiles'
 import { getCases } from '@/lib/repositories/cases'
 import { getProfilesByCongregation } from '@/lib/repositories/profiles'
 import { getDisciplesLite } from '@/lib/repositories/disciples'
+import { getClassShifts } from '@/lib/repositories/class-shifts'
 import { redirect } from 'next/navigation'
 import { AcolhimentoClient } from './client'
 
@@ -22,13 +23,14 @@ export default async function AcolhimentoPage({
   // que antes ficava estranho: alguém com case concluído podia legitimamente
   // começar um novo acolhimento (a RPC só bloqueia se já tem case ATIVO), mas
   // aparecia preso como "já tem case" só por causa do histórico concluído.
-  const [allCases, discipuladores, disciples] = await Promise.all([
+  const [allCases, discipuladores, disciples, shifts] = await Promise.all([
     getCases(profile.congregation_id, {
       search,
       status: ['EM_ACOLHIMENTO', 'PENDENTE_MATRICULA', 'EM_DISCIPULADO', 'PAUSADO'],
     }),
     getProfilesByCongregation(profile.congregation_id),
     getDisciplesLite(profile.congregation_id),
+    getClassShifts(profile.congregation_id, { activeOnly: true }),
   ])
 
   const discipuladoresAtivos = discipuladores.filter(
@@ -57,6 +59,7 @@ export default async function AcolhimentoPage({
         cases={cases}
         discipuladores={discipuladoresAtivos}
         disciplesSemCase={disciplesSemCase}
+        shifts={shifts}
         congregationId={profile.congregation_id}
         currentUserId={profile.id}
         currentRole={profile.role}

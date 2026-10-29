@@ -18,7 +18,7 @@ export async function getCases(congregationId: string, filters?: {
   let query = supabase
     .from('discipleship_cases')
     .select(`
-      id, disciple_id, status, assigned_to, welcomed_on, last_contact_at, attendance_rate, created_at,
+      id, disciple_id, status, assigned_to, welcomed_on, preferred_shift_id, last_contact_at, attendance_rate, created_at,
       disciples ( full_name, phone ),
       profiles!assigned_to ( name )
     `)
@@ -60,6 +60,7 @@ export async function startCase(
     p_welcomed_on: input.welcomed_on || null,
     p_notes: input.notes || null,
     p_created_by: createdBy,
+    p_preferred_shift_id: input.preferred_shift_id || null,
   })
 
   if (error) throw error
@@ -186,27 +187,25 @@ export async function getAcceptedFbvCaseIds(congregationId: string): Promise<str
     .map(([caseId]) => caseId)
 }
 
-// Turno escolhido na Festa de Boas-vindas mais recente em que o case teve
-// presença confirmada — usado pra oferecer o discipulando só nas turmas do
-// mesmo turno (mesma lógica de "um evento por vez" já usada na FBV: uma vez
-// matriculado, some das opções de todas as outras turmas via getCases
+// Turno de preferência definido pelo acolhedor no primeiro contato —
+// lê de discipleship_cases.preferred_shift_id (antes vinha de
+// event_confirmations, ligado à FBV). Usado pra oferecer o discipulando
+// só nas turmas do mesmo turno (mesma lógica de "um evento por vez": uma
+// vez matriculado, some das opções de todas as outras turmas via getCases
 // filtrar por status PENDENTE_MATRICULA, que deixa de valer após matricular).
 export async function getPreferredShiftByCaseId(congregationId: string): Promise<Map<string, string | null>> {
   const supabase = await createClient()
   const { data, error } = await supabase
-    .from('event_confirmations')
-    .select('case_id, class_shift_id, created_at, discipleship_cases!inner(congregation_id)')
-    .eq('attended', true)
-    .eq('discipleship_cases.congregation_id', congregationId)
-    .order('created_at', { ascending: false })
+    .from('discipleship_cases')
+    .select('id, preferred_shift_id')
+    .eq('congregation_id', congregationId)
+    .in('status', ['EM_ACOLHIMENTO', 'PENDENTE_MATRICULA'])
 
   if (error) throw error
 
   const shiftByCase = new Map<string, string | null>()
   for (const row of data ?? []) {
-    if (!shiftByCase.has(row.case_id)) {
-      shiftByCase.set(row.case_id, row.class_shift_id)
-    }
+    shiftByCase.set(row.id, row.preferred_shift_id)
   }
   return shiftByCase
 }
@@ -215,9 +214,20 @@ export async function addContactAttempt(
   caseId: string,
   outcome: ContactOutcome,
   note: string | undefined,
-  createdBy: string
+  createdBy: string,
+  preferredShiftId?: string | null
 ): Promise<void> {
   const supabase = await createClient()
+
+  // Buscar status atual do case pra saber se precisa avançar
+  const { data: caseData } = await supabase
+    .from('discipleship_cases')
+    .select('status')
+    .eq('id', caseId)
+    .single()
+
+  const currentStatus = caseData?.status as CaseStatus | undefined
+
   const { error: contactError } = await supabase
     .from('contact_attempts')
     .insert({
@@ -229,19 +239,46 @@ export async function addContactAttempt(
 
   if (contactError) throw contactError
 
-  // Atualizar last_contact_at e inserir evento
+  // Monta o update de discipleship_cases: sempre atualiza last_contact_at,
+  // e se vier preferredShiftId, atualiza a coluna também.
+  const caseUpdate: Record<string, unknown> = {
+    last_contact_at: new Date().toISOString(),
+  }
+
+  if (preferredShiftId !== undefined) {
+    caseUpdate.preferred_shift_id = preferredShiftId || null
+  }
+
+  // Se o case está em EM_ACOLHIMENTO e o contato foi aceito (ACEITOU_FBV),
+  // avança pra PENDENTE_MATRICULA — liberando a matrícula em turma.
+  // Antes isso era feito por trigger na FBV; agora é o acolhedor quem decide.
+  if (currentStatus === 'EM_ACOLHIMENTO' && outcome === 'ACEITOU_FBV') {
+    caseUpdate.status = 'PENDENTE_MATRICULA'
+  }
+
   await supabase
     .from('discipleship_cases')
-    .update({ last_contact_at: new Date().toISOString() })
+    .update(caseUpdate)
     .eq('id', caseId)
 
+  // Evento de contato
   await supabase.from('case_events').insert({
     case_id: caseId,
     type: 'CONTATO',
     description: `Contato registrado: ${outcome}`,
-    metadata: { outcome, note },
+    metadata: { outcome, note, preferred_shift_id: preferredShiftId ?? null },
     created_by: createdBy,
   })
+
+  // Se avançou de status, registra evento de acolhimento
+  if (currentStatus === 'EM_ACOLHIMENTO' && outcome === 'ACEITOU_FBV') {
+    await supabase.from('case_events').insert({
+      case_id: caseId,
+      type: 'ACOLHIMENTO',
+      description: 'Acolhimento concluído — matrícula liberada',
+      created_by: createdBy,
+    })
+  }
 }
 
 export async function updateModuleProgress(

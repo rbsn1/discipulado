@@ -32,6 +32,7 @@ import type {
   UserRole,
   Disciple,
   ContactOutcome,
+  ClassShiftCatalog,
 } from '@/types'
 import { differenceInDays, parseISO } from 'date-fns'
 
@@ -42,8 +43,8 @@ import { differenceInDays, parseISO } from 'date-fns'
 const STATUS_ORDER: CaseStatus[] = ['EM_ACOLHIMENTO', 'PENDENTE_MATRICULA', 'EM_DISCIPULADO', 'PAUSADO']
 
 const CONTACT_OUTCOMES: { value: ContactOutcome; label: string }[] = [
-  { value: 'ACEITOU_FBV',     label: 'Aceitou participar da FBV'      },
-  { value: 'NAO_ACEITOU_FBV', label: 'Não aceitou participar da FBV'  },
+  { value: 'ACEITOU_FBV',     label: 'Aceitou participar do discipulado'    },
+  { value: 'NAO_ACEITOU_FBV', label: 'Não aceitou participar do discipulado'},
   { value: 'CONTATO_ERRADO',  label: 'Contato errado'                 },
   { value: 'NAO_ATENDE',      label: 'Não atende'                     },
   { value: 'NAO_RESPONDE',    label: 'Não responde'                   },
@@ -59,6 +60,7 @@ interface Props {
   cases: CaseListItem[]
   discipuladores: Profile[]
   disciplesSemCase: Pick<Disciple, 'id' | 'full_name' | 'phone'>[]
+  shifts: ClassShiftCatalog[]
   congregationId: string
   currentUserId: string
   currentRole: UserRole
@@ -98,6 +100,7 @@ export function AcolhimentoClient({
   cases,
   discipuladores,
   disciplesSemCase,
+  shifts,
   congregationId,
   currentUserId,
   currentRole,
@@ -130,6 +133,7 @@ export function AcolhimentoClient({
   const [contactCaseId, setContactCaseId] = useState<string | null>(null)
   const [contactOutcome, setContactOutcome] = useState<ContactOutcome>('ACEITOU_FBV')
   const [contactNote, setContactNote]   = useState('')
+  const [contactShift, setContactShift] = useState('')
 
   // Modal: iniciar acolhimento (novo case)
   const [startModal, setStartModal]     = useState(false)
@@ -137,6 +141,12 @@ export function AcolhimentoClient({
   const [startAssignedTo, setStartAssignedTo] = useState('')
   const [startWelcomedOn, setStartWelcomedOn] = useState('')
   const [startNotes, setStartNotes]     = useState('')
+  const [startShift, setStartShift]     = useState('')
+
+  const shiftOptions = useMemo(() => [
+    { value: '', label: 'Não informado' },
+    ...shifts.map(s => ({ value: s.id, label: s.name })),
+  ], [shifts])
 
   const canManage = ['ADMIN_PLATAFORMA', 'ADMIN_DISCIPULADO', 'SM_DISCIPULADO', 'DISCIPULADOR'].includes(currentRole)
 
@@ -221,9 +231,11 @@ export function AcolhimentoClient({
     await doAction(contactCaseId, 'contacts', 'POST', {
       outcome: contactOutcome,
       note: contactNote || null,
+      preferred_shift_id: contactShift || null,
     })
     setContactCaseId(null)
     setContactNote('')
+    setContactShift('')
   }
 
   async function handleStartCase() {
@@ -238,6 +250,7 @@ export function AcolhimentoClient({
         assigned_to: startAssignedTo || null,
         welcomed_on: startWelcomedOn || null,
         notes: startNotes || null,
+        preferred_shift_id: startShift || null,
       }),
     })
     const data = await res.json()
@@ -248,6 +261,7 @@ export function AcolhimentoClient({
     setStartAssignedTo('')
     setStartWelcomedOn('')
     setStartNotes('')
+    setStartShift('')
     router.refresh()
   }
 
@@ -362,7 +376,7 @@ export function AcolhimentoClient({
             loading={loading}
             canManage={canManage}
             onAssign={() => { setAssignCaseId(c.id); setAssignedTo(c.assigned_to ?? '') }}
-            onContact={() => { setContactCaseId(c.id); setContactOutcome('ACEITOU_FBV'); setContactNote('') }}
+            onContact={() => { setContactCaseId(c.id); setContactOutcome('ACEITOU_FBV'); setContactNote(''); setContactShift(c.preferred_shift_id ?? '') }}
             onPause={() => doAction(c.id, 'pause')}
             onResume={() => doAction(c.id, 'resume')}
           />
@@ -404,6 +418,12 @@ export function AcolhimentoClient({
             onChange={e => setContactOutcome(e.target.value as ContactOutcome)}
             options={CONTACT_OUTCOMES}
           />
+          <Select
+            label="Turno de preferência"
+            value={contactShift}
+            onChange={e => setContactShift(e.target.value)}
+            options={shiftOptions}
+          />
           <Textarea
             label="Observação"
             value={contactNote}
@@ -439,6 +459,12 @@ export function AcolhimentoClient({
             onChange={e => setStartAssignedTo(e.target.value)}
             placeholder="Nenhum (atribuir depois)"
             options={discipuladores.map(d => ({ value: d.id, label: d.name }))}
+          />
+          <Select
+            label="Turno de preferência"
+            value={startShift}
+            onChange={e => setStartShift(e.target.value)}
+            options={shiftOptions}
           />
           <Textarea
             label="Observações"
@@ -536,7 +562,7 @@ function CaseRow({ c, loading, canManage, onAssign, onContact, onPause, onResume
               {waitDays === 0
                 ? 'Acolhido hoje'
                 : status === 'EM_ACOLHIMENTO'
-                  ? `${waitDays}d aguardando Festa de Boas Vindas`
+                  ? `${waitDays}d aguardando contato`
                   : `${waitDays}d aguardando matrícula`}
             </span>
           )}

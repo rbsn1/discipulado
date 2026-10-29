@@ -157,17 +157,29 @@ export async function getCaseConfraternizacaoInfo(caseId: string): Promise<{
   preferredShift: string | null
 }> {
   const supabase = await createClient()
-  const { data } = await supabase
-    .from('event_confirmations')
-    .select('class_shifts ( name )')
-    .eq('case_id', caseId)
-    .eq('attended', true)
-    .order('created_at', { ascending: false })
-    .limit(1)
+  // Lê o turno de preferência diretamente do case (definido pelo acolhedor
+  // no primeiro contato) e verifica se já esteve em alguma confraternização.
+  const [caseData, confData] = await Promise.all([
+    supabase
+      .from('discipleship_cases')
+      .select('preferred_shift_id, class_shifts!preferred_shift_id ( name )')
+      .eq('id', caseId)
+      .single(),
+    supabase
+      .from('event_confirmations')
+      .select('class_shifts ( name )')
+      .eq('case_id', caseId)
+      .eq('attended', true)
+      .order('created_at', { ascending: false })
+      .limit(1),
+  ])
+
+  const preferredShift = (caseData.data as unknown as { class_shifts: { name: string } | null } | undefined)?.class_shifts?.name ?? null
+  const hasAttended = (confData.data?.length ?? 0) > 0
 
   return {
-    hasAttended: (data?.length ?? 0) > 0,
-    preferredShift: (data?.[0] as unknown as { class_shifts: { name: string } | null } | undefined)?.class_shifts?.name ?? null,
+    hasAttended,
+    preferredShift,
   }
 }
 
