@@ -66,7 +66,6 @@ export interface Congregation {
   accent_color?: string | null
   sidebar_color?: string | null
   subscription_paid_until?: string | null
-  fbv_enabled?: boolean
   created_at: string
   updated_at: string
 }

@@ -40,28 +40,3 @@ export async function getMyAccessStatus(): Promise<AccessStatus | null> {
   if (error) return null
   return data as AccessStatus
 }
-
-// Festa de Boas Vindas ligada pra congregação (migration 037). Na dúvida
-// (erro de leitura) trata como ligada — é o default do banco e não esconde
-// nada de quem já usa.
-export async function isFbvEnabled(congregationId: string): Promise<boolean> {
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('congregations')
-    .select('fbv_enabled')
-    .eq('id', congregationId)
-    .single()
-
-  if (error || !data) return true
-  return data.fbv_enabled !== false
-}
-
-export async function setFbvEnabled(congregationId: string, enabled: boolean): Promise<void> {
-  const supabase = await createClient()
-  const { error } = await supabase
-    .from('congregations')
-    .update({ fbv_enabled: enabled })
-    .eq('id', congregationId)
-
-  if (error) throw error
-}
