@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   Users,
   BookOpen,
-  CalendarDays,
   Star,
   Settings,
   LogOut,
@@ -22,12 +21,15 @@ import { ROLE_LABEL } from '@/lib/utils'
 
 // hiddenFor: papéis que não devem ver esse item no menu (cada papel tem seu
 // próprio subconjunto de telas — Acolhedor só vê Acolhimento/Jornada,
-// Secretaria só vê Boas Vindas/Turmas/Integração + o case de cada vida
+// Secretaria só vê Turmas/Integração + o case de cada vida
 // acolhida, que não é item de menu, é acessado via link dessas telas).
 const navItems: { href: string; label: string; icon: React.ElementType; hiddenFor?: UserRole[]; adminOnly?: boolean }[] = [
   { href: '/painel',           label: 'Painel',        icon: LayoutDashboard, hiddenFor: ['DISCIPULADOR', 'SECRETARIA_DISCIPULADO'] },
   { href: '/discipulandos',    label: 'Acolhimento',   icon: Users,           hiddenFor: ['SECRETARIA_DISCIPULADO'] },
-  { href: '/confraternizacao', label: 'Boas Vindas',   icon: CalendarDays,    hiddenFor: ['DISCIPULADOR'] },
+  // Boas Vindas (/confraternizacao) fora do menu: desde a 036 a FBV não é
+  // mais etapa do fluxo. As páginas e os dados continuam — pra voltar a
+  // exibir, é só recolocar o item aqui.
+  // { href: '/confraternizacao', label: 'Boas Vindas', icon: CalendarDays, hiddenFor: ['DISCIPULADOR'] },
   { href: '/turmas',           label: 'Turmas',        icon: BookOpen,        hiddenFor: ['DISCIPULADOR'] },
   { href: '/pos-discipulado',  label: 'Integração',    icon: Star,            hiddenFor: ['DISCIPULADOR'] },
   { href: '/acolhimento',      label: 'Jornada',       icon: Heart,           hiddenFor: ['SECRETARIA_DISCIPULADO'] },
