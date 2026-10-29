@@ -28,7 +28,12 @@ create index if not exists idx_cases_preferred_shift
 
 -- ---------------------------------------------------------------
 -- 2. create_discipleship_case: aceita preferred_shift_id
+--    Assinatura nova = função nova no Postgres (create or replace não
+--    substitui). Remove a versão de 6 args pra não ficar overload
+--    ambíguo (mesmo problema da 032).
 -- ---------------------------------------------------------------
+drop function if exists create_discipleship_case(uuid, uuid, uuid, date, text, uuid);
+
 create or replace function create_discipleship_case(
   p_disciple_id       uuid,
   p_congregation_id   uuid,
@@ -89,6 +94,16 @@ begin
   return v_case_id;
 end;
 $$;
+
+-- Função nova nasce com EXECUTE pra PUBLIC e com grant direto pra anon
+-- (default privileges do Supabase) — repete o
+-- fechamento da 027 pra esta assinatura.
+revoke execute on function
+  create_discipleship_case(uuid, uuid, uuid, date, text, uuid, uuid)
+from public, anon;
+grant execute on function
+  create_discipleship_case(uuid, uuid, uuid, date, text, uuid, uuid)
+to authenticated, service_role;
 
 -- ---------------------------------------------------------------
 -- 3. Remover os triggers de auto-advance/revert das FBVs

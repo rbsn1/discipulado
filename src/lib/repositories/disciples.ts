@@ -80,7 +80,7 @@ export async function getDiscipleById(id: string) {
       class_enrollments ( active, classes ( name ) ),
       discipleship_cases (
         id, status, stage, attendance_rate, total_lessons, present_count,
-        justified_count, absence_count, welcomed_on, last_contact_at,
+        justified_count, absence_count, welcomed_on, last_contact_at, preferred_shift_id,
         profiles!assigned_to ( name ),
         case_module_progress (
           module_template_id, status, completed_at,

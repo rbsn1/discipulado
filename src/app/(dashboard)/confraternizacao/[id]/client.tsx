@@ -152,9 +152,8 @@ export function EventDetailClient({ event, activeCases, attendedCaseIds, shifts,
     // dessa confirmação — some da lista inteira, não só do status "presente",
     // mesmo que "confirmado" ainda estivesse marcado. Sem confirmação nem
     // presença também não sobra motivo pra manter a linha. Em ambos os casos
-    // remove de vez, o que devolve a vida acolhida pra "Adicionar participante"
-    // e (via trigger no banco) reverte o case pra EM_ACOLHIMENTO se estava
-    // PENDENTE_MATRICULA.
+    // remove de vez, o que devolve a vida acolhida pra "Adicionar participante".
+    // Não mexe mais no status do case (a FBV deixou de ser portão, migration 036).
     const isUnattending = field === 'attended' && currentValue === true
     let res: Response
     if (isUnattending || (!nextConfirmed && !nextAttended)) {

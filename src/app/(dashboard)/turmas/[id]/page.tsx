@@ -24,9 +24,9 @@ export default async function TurmaDetailPage({
   ])
   if (!turma) notFound()
 
-  // Só quem confirmou presença numa Festa de Boas-vindas com o MESMO turno
-  // desta turma entra na fila de "Adicionar participante" — mesma ideia da
-  // FBV: aparece pra todas as turmas do turno até ser matriculado em uma,
+  // Só quem tem turno de preferência (definido pelo acolhedor no contato)
+  // igual ao desta turma entra na fila de "Adicionar participante" —
+  // aparece pra todas as turmas do turno até ser matriculado em uma,
   // aí some das outras (porque sai de PENDENTE_MATRICULA).
   const turmaShiftId = (turma as { shift_id: string | null }).shift_id
   const eligibleCases = pendingCases.filter(c => (shiftByCase.get(c.id) ?? null) === turmaShiftId)

@@ -72,6 +72,7 @@ import type {
   CreateDiscipleInput,
   ContactOutcome,
   WorshipService,
+  ClassShiftCatalog,
 } from '@/types'
 import type { Absence } from '@/lib/repositories/classes'
 
@@ -82,15 +83,15 @@ interface Props {
   discipuladores: Profile[]
   classes: Class[]
   currentProfile: Profile
-  hasAttendedConfraternizacao: boolean
   preferredShift: string | null
+  shifts: ClassShiftCatalog[]
   worshipServices: WorshipService[]
   absences: Absence[]
 }
 
 const CONTACT_OUTCOMES: { value: ContactOutcome; label: string }[] = [
-  { value: 'ACEITOU_FBV', label: 'Aceitou participar da FBV' },
-  { value: 'NAO_ACEITOU_FBV', label: 'Não aceitou participar da FBV' },
+  { value: 'ACEITOU_FBV', label: 'Aceitou participar do discipulado' },
+  { value: 'NAO_ACEITOU_FBV', label: 'Não aceitou participar do discipulado' },
   { value: 'CONTATO_ERRADO', label: 'Contato errado' },
   { value: 'NAO_ATENDE', label: 'Não atende' },
   { value: 'NAO_RESPONDE', label: 'Não responde' },
@@ -110,8 +111,8 @@ export function DiscipleDetailClient({
   discipuladores,
   classes,
   currentProfile,
-  hasAttendedConfraternizacao,
   preferredShift,
+  shifts,
   worshipServices,
   absences,
 }: Props) {
@@ -135,6 +136,13 @@ export function DiscipleDetailClient({
   // Contact form
   const [contactOutcome, setContactOutcome] = useState<ContactOutcome>('ACEITOU_FBV')
   const [contactNote, setContactNote] = useState('')
+  const [contactShift, setContactShift] = useState(activeCase?.preferred_shift_id ?? '')
+  const [startShift, setStartShift] = useState('')
+
+  const shiftOptions = [
+    { value: '', label: 'Não informado' },
+    ...shifts.map(s => ({ value: s.id, label: s.name })),
+  ]
 
   const canEdit = ['ADMIN_DISCIPULADO', 'DISCIPULADOR', 'SECRETARIA_DISCIPULADO', 'SM_DISCIPULADO', 'ADMIN_PLATAFORMA'].includes(currentProfile.role)
   const canManageCase = ['ADMIN_DISCIPULADO', 'DISCIPULADOR', 'SM_DISCIPULADO', 'ADMIN_PLATAFORMA'].includes(currentProfile.role)
@@ -181,8 +189,14 @@ export function DiscipleDetailClient({
       assigned_to: assignedTo || null,
       welcomed_on: welcomedOn || null,
       notes: caseNotes || null,
+      preferred_shift_id: startShift || null,
     })
     if (ok) setStartCaseModal(false)
+  }
+
+  async function handleChangeShift(shiftId: string) {
+    if (!activeCase) return
+    await call(`/api/cases/${activeCase.id}/shift`, 'PATCH', { preferred_shift_id: shiftId || null })
   }
 
   async function handleEnroll() {
@@ -200,6 +214,7 @@ export function DiscipleDetailClient({
     const ok = await call(`/api/cases/${activeCase.id}/contacts`, 'POST', {
       outcome: contactOutcome,
       note: contactNote || null,
+      preferred_shift_id: contactShift || null,
     })
     if (ok) { setContactModal(false); setContactNote('') }
   }
@@ -270,12 +285,7 @@ export function DiscipleDetailClient({
             </Button>
           )}
           {activeCase && canManageCase && activeCase.status === 'PENDENTE_MATRICULA' && (
-            <Button
-              size="sm"
-              onClick={() => setEnrollModal(true)}
-              disabled={!hasAttendedConfraternizacao}
-              title={!hasAttendedConfraternizacao ? 'Vida acolhida precisa participar de uma Festa de Boas Vindas primeiro' : ''}
-            >
+            <Button size="sm" onClick={() => setEnrollModal(true)}>
               <BookOpen className="h-4 w-4" />
               Matricular em turma
             </Button>
@@ -315,15 +325,13 @@ export function DiscipleDetailClient({
 
       {error && <Alert type="error" className="mb-4">{error}</Alert>}
 
-      {/* Aviso: aguardando Festa de Boas Vindas. EM_ACOLHIMENTO é o caso normal
-          daqui pra frente; o check extra por PENDENTE_MATRICULA sem presença
-          cobre cases antigos, criados antes dessa mudança, que não foram
-          migrados retroativamente. */}
-      {(activeCase?.status === 'EM_ACOLHIMENTO' ||
-        (activeCase?.status === 'PENDENTE_MATRICULA' && !hasAttendedConfraternizacao)) && (
+      {/* Aviso: a matrícula é liberada quando o acolhedor registra um contato
+          "Aceitou participar" (addContactAttempt avança pra PENDENTE_MATRICULA).
+          A FBV deixou de ser portão do fluxo (migration 036). */}
+      {activeCase?.status === 'EM_ACOLHIMENTO' && (
         <Alert type="warning" className="mb-4">
           <AlertCircle className="inline h-4 w-4 mr-1" />
-          Aguardando participação em uma Festa de Boas Vindas para liberar a matrícula em turma.
+          Aguardando um contato com resultado &ldquo;Aceitou participar do discipulado&rdquo; para liberar a matrícula em turma.
         </Alert>
       )}
 
@@ -543,6 +551,19 @@ export function DiscipleDetailClient({
                     <p className="font-medium">{(activeCase as any).profiles?.name ?? '—'}</p>
                   </div>
                   <div>
+                    <p className="text-gray-500">Turno de preferência</p>
+                    {canManageCase && activeCase.status !== 'CONCLUIDO' ? (
+                      <Select
+                        value={activeCase.preferred_shift_id ?? ''}
+                        onChange={e => handleChangeShift(e.target.value)}
+                        options={shiftOptions}
+                        disabled={loading}
+                      />
+                    ) : (
+                      <p className="font-medium">{preferredShift ?? '—'}</p>
+                    )}
+                  </div>
+                  <div>
                     <p className="text-gray-500">Turma</p>
                     <p className="font-medium">
                       {disciple.class_enrollments?.find(e => e.active)?.classes?.name ?? '—'}
@@ -591,6 +612,12 @@ export function DiscipleDetailClient({
               ['DISCIPULADOR', 'ADMIN_DISCIPULADO', 'SM_DISCIPULADO'].includes(d.role)
             ).map(d => ({ value: d.id, label: d.name }))}
           />
+          <Select
+            label="Turno de preferência"
+            value={startShift}
+            onChange={e => setStartShift(e.target.value)}
+            options={shiftOptions}
+          />
           <Textarea
             label="Observações"
             value={caseNotes}
@@ -609,7 +636,7 @@ export function DiscipleDetailClient({
         <div className="flex flex-col gap-4">
           {preferredShift && (
             <div className="rounded-lg bg-indigo-50 px-3 py-2 text-sm text-indigo-800">
-              Turno preferido (Festa de Boas Vindas): <strong>{preferredShift}</strong>
+              Turno preferido: <strong>{preferredShift}</strong>
             </div>
           )}
           <Select
@@ -617,7 +644,14 @@ export function DiscipleDetailClient({
             placeholder="Selecionar turma"
             value={selectedClass}
             onChange={e => setSelectedClass(e.target.value)}
-            options={classes.map(c => ({ value: c.id, label: `${c.name} — ${c.class_shifts?.name ?? 'Turno não informado'}` }))}
+            options={[...classes]
+              .sort((a, b) =>
+                Number(b.shift_id === activeCase?.preferred_shift_id) - Number(a.shift_id === activeCase?.preferred_shift_id))
+              .map(c => ({
+                value: c.id,
+                label: `${c.name} — ${c.class_shifts?.name ?? 'Turno não informado'}${
+                  activeCase?.preferred_shift_id && c.shift_id === activeCase.preferred_shift_id ? ' ★' : ''}`,
+              }))}
           />
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setEnrollModal(false)}>Cancelar</Button>
@@ -636,6 +670,12 @@ export function DiscipleDetailClient({
             value={contactOutcome}
             onChange={e => setContactOutcome(e.target.value as ContactOutcome)}
             options={CONTACT_OUTCOMES}
+          />
+          <Select
+            label="Turno de preferência"
+            value={contactShift}
+            onChange={e => setContactShift(e.target.value)}
+            options={shiftOptions}
           />
           <Textarea
             label="Observação"

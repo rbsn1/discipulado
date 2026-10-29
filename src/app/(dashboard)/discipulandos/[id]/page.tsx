@@ -5,6 +5,7 @@ import { getProfilesByCongregation } from '@/lib/repositories/profiles'
 import { getClasses, getAbsences } from '@/lib/repositories/classes'
 import { getCaseConfraternizacaoInfo } from '@/lib/repositories/events'
 import { getWorshipServices } from '@/lib/repositories/worship-services'
+import { getClassShifts } from '@/lib/repositories/class-shifts'
 import { redirect, notFound } from 'next/navigation'
 import { DiscipleDetailClient } from './client'
 
@@ -26,13 +27,14 @@ export default async function DiscipleDetailPage({
   }
 
   const activeCase = disciple.discipleship_cases?.[0] ?? null
-  const [timeline, profiles, classes, confraternizacaoInfo, worshipServices, absences] = await Promise.all([
+  const [timeline, profiles, classes, confraternizacaoInfo, worshipServices, absences, shifts] = await Promise.all([
     activeCase ? getCaseTimeline(activeCase.id) : Promise.resolve([]),
     getProfilesByCongregation(profile.congregation_id),
     getClasses(profile.congregation_id, { activeOnly: true }),
     activeCase ? getCaseConfraternizacaoInfo(activeCase.id) : Promise.resolve({ hasAttended: false, preferredShift: null }),
     getWorshipServices(profile.congregation_id, { activeOnly: true }),
     getAbsences(id),
+    getClassShifts(profile.congregation_id, { activeOnly: true }),
   ])
 
   // Só quem pode assumir um discipulando e ainda está ativo — evita listar
@@ -50,8 +52,8 @@ export default async function DiscipleDetailPage({
         discipuladores={discipuladores}
         classes={classes}
         currentProfile={profile}
-        hasAttendedConfraternizacao={confraternizacaoInfo.hasAttended}
         preferredShift={confraternizacaoInfo.preferredShift}
+        shifts={shifts}
         worshipServices={worshipServices}
         absences={absences}
       />

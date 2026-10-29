@@ -93,6 +93,48 @@ export async function updateCaseAssignee(
   if (eventError) throw eventError
 }
 
+// Turno de preferência do case, editável em qualquer etapa (antes da
+// matrícula é o que filtra em quais turmas a vida acolhida aparece).
+export async function updateCasePreferredShift(
+  caseId: string,
+  shiftId: string | null,
+  updatedBy: string
+): Promise<void> {
+  const supabase = await createClient()
+
+  // RLS de class_shifts só devolve turnos da própria congregação — barra
+  // um shift_id de outra congregação que a FK sozinha aceitaria.
+  let shiftName: string | null = null
+  if (shiftId) {
+    const { data: shift, error: shiftError } = await supabase
+      .from('class_shifts')
+      .select('name')
+      .eq('id', shiftId)
+      .single()
+    if (shiftError || !shift) throw new Error('Turno inválido')
+    shiftName = shift.name
+  }
+
+  const { error: updateError } = await supabase
+    .from('discipleship_cases')
+    .update({ preferred_shift_id: shiftId })
+    .eq('id', caseId)
+
+  if (updateError) throw updateError
+
+  const { error: eventError } = await supabase
+    .from('case_events')
+    .insert({
+      case_id: caseId,
+      type: 'NOTA',
+      description: shiftName
+        ? `Turno de preferência: ${shiftName}`
+        : 'Turno de preferência removido',
+      created_by: updatedBy,
+    })
+  if (eventError) throw eventError
+}
+
 export async function pauseCase(caseId: string, createdBy: string): Promise<void> {
   const supabase = await createClient()
   const { error } = await supabase
