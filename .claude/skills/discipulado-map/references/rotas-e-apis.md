@@ -12,12 +12,12 @@ Root: `src/app`. Route groups: `(auth)` (pública) e `(dashboard)` (autenticada)
 
 | Rota | Arquivo(s) | Descrição |
 |---|---|---|
-| `layout.tsx` | — | carrega profile + tema da congregação, redireciona para `/login` se profile ausente/inativo |
+| `layout.tsx` | — | carrega profile + tema da congregação + `fbv_enabled`, redireciona para `/login` se profile ausente/inativo |
 | `/painel` | `painel/page.tsx` | dashboard home, `getDashboardStats` (`lib/repositories/cases.ts`) |
 | `/discipulandos` | `discipulandos/page.tsx` + `client.tsx` | lista/gestão de discípulos (CRM) |
 | `/discipulandos/[id]` | `discipulandos/[id]/page.tsx` + `client.tsx` | detalhe de um discípulo/case |
 | `/acolhimento` | `acolhimento/page.tsx` + `client.tsx` | board "Jornada" (kanban de acolhimento) |
-| `/confraternizacao` | `confraternizacao/page.tsx` + `client.tsx` | lista de eventos "Boas Vindas" |
+| `/confraternizacao` | `confraternizacao/layout.tsx` + `page.tsx` + `client.tsx` | lista de eventos "Boas Vindas"; o `layout.tsx` redireciona pra `/painel` se `congregations.fbv_enabled = false` (FBV não é mais portão de matrícula desde a 036) |
 | `/confraternizacao/[id]` | `confraternizacao/[id]/page.tsx` + `client.tsx` | detalhe de evento (presença/confirmações) |
 | `/turmas` | `turmas/page.tsx` + `client.tsx` | lista de turmas |
 | `/turmas/[id]` | `turmas/[id]/page.tsx` + `client.tsx` | detalhe de turma (aulas, matrícula, presença) |
@@ -28,7 +28,9 @@ Root: `src/app`. Route groups: `(auth)` (pública) e `(dashboard)` (autenticada)
 | `/admin/usuarios` | `admin/usuarios/page.tsx` + `client.tsx` | gestão de usuários/profiles (papéis, ativação) |
 | `/admin/modulos` | `admin/modulos/page.tsx` + `client.tsx` | CRUD de templates de módulo de discipulado |
 | `/admin/cultos` | `admin/cultos/page.tsx` + `client.tsx` | CRUD do catálogo de cultos |
-| `/admin/turnos` | `admin/turnos/page.tsx` + `client.tsx` | CRUD do catálogo de turnos — usado em `/turmas` e em `/confraternizacao/[id]` |
+| `/admin/turnos` | `admin/turnos/page.tsx` + `client.tsx` | CRUD do catálogo de turnos — usado em `/turmas`, em `discipleship_cases.preferred_shift_id` e em `/confraternizacao/[id]` |
+| `/admin/boas-vindas` | `admin/boas-vindas/page.tsx` + `client.tsx` | liga/desliga a Festa de Boas Vindas da congregação (`ADMIN_DISCIPULADO`/`ADMIN_PLATAFORMA` com congregação) |
+| `/admin/tela-login` | `admin/tela-login/page.tsx` + `client.tsx` | versículo da tela de login (`platform_settings`, só `ADMIN_PLATAFORMA`) |
 | `/admin/departamentos` | `admin/departamentos/page.tsx` + `client.tsx` | CRUD do catálogo de departamentos (feature mais recente) — usado em `/pos-discipulado` |
 
 Nenhuma dessas sub-rotas de `/admin` aparece no nav principal do sidebar — só são alcançadas via `/admin`.
@@ -39,7 +41,8 @@ REST-style, chamadas via `fetch` no client em vez de Server Actions. Padrão com
 
 - `admin/congregations/route.ts`, `[id]/route.ts`, `[id]/logo/route.ts` (POST/DELETE upload de logo no Supabase Storage, só `ADMIN_PLATAFORMA`)
 - `admin/users/route.ts`, `[id]/route.ts`
-- `cases/route.ts`, `[id]/assign|conclude|contacts|modules|pause|resume/route.ts` — ciclo de vida do case de discipulado
+- `admin/fbv/route.ts` (PATCH `{ fbv_enabled }` na congregação do próprio usuário, `ADMIN_DISCIPULADO`/`ADMIN_PLATAFORMA`)
+- `cases/route.ts`, `[id]/assign|conclude|contacts|modules|pause|resume|shift/route.ts` — ciclo de vida do case de discipulado (`shift` = PATCH do turno de preferência)
 - `class-shifts/route.ts` (GET/POST, papel `ADMIN_DISCIPULADO`/`ADMIN_PLATAFORMA`), `[id]/route.ts` (PATCH)
 - `classes/route.ts`, `[id]/route.ts`, `[id]/lessons/route.ts`, `enroll/route.ts` — `shift_id` referencia `class_shifts`
 - `departments/route.ts` (GET/POST, papel `ADMIN_DISCIPULADO`/`ADMIN_PLATAFORMA`), `[id]/route.ts` (PATCH) — usado por `post_discipleship.department_id`

@@ -43,17 +43,19 @@ interface SidebarProps {
     accentColor?:  string
     sidebarColor?: string
   }
+  fbvEnabled?: boolean
   open?: boolean
   onClose?: () => void
 }
 
-export function Sidebar({ profile, congregationName, theme, open = true, onClose }: SidebarProps) {
+export function Sidebar({ profile, congregationName, theme, fbvEnabled = true, open = true, onClose }: SidebarProps) {
   const pathname = usePathname()
   const palette  = deriveTheme(theme)
 
   const canAccessAdmin = ['ADMIN_PLATAFORMA', 'ADMIN_DISCIPULADO'].includes(profile.role)
   const visibleItems   = navItems.filter(item =>
-    (!item.adminOnly || canAccessAdmin) && !item.hiddenFor?.includes(profile.role)
+    (!item.adminOnly || canAccessAdmin) && !item.hiddenFor?.includes(profile.role) &&
+    (fbvEnabled || item.href !== '/confraternizacao')
   )
 
   return (

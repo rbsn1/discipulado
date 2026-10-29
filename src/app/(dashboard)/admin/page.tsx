@@ -1,7 +1,7 @@
 import { getCurrentProfile } from '@/lib/repositories/profiles'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Users, BookOpen, Building2, Church, Quote, Clock, Landmark } from 'lucide-react'
+import { Users, BookOpen, Building2, Church, Quote, Clock, Landmark, CalendarDays } from 'lucide-react'
 
 export default async function AdminPage() {
   const profile = await getCurrentProfile()
@@ -41,7 +41,7 @@ export default async function AdminPage() {
       href: '/admin/turnos',
       icon: Clock,
       title: 'Turnos',
-      description: 'Configurar catálogo de turnos usado nas turmas e na Festa de Boas Vindas',
+      description: 'Configurar catálogo de turnos usado nas turmas e na preferência do acolhido',
       adminOnly: false,
     },
     {
@@ -49,6 +49,13 @@ export default async function AdminPage() {
       icon: Landmark,
       title: 'Departamentos',
       description: 'Configurar catálogo de departamentos usado no direcionamento pós-discipulado',
+      adminOnly: false,
+    },
+    {
+      href: '/admin/boas-vindas',
+      icon: CalendarDays,
+      title: 'Festa de Boas Vindas',
+      description: 'Mostrar ou ocultar a Festa de Boas Vindas no menu da congregação',
       adminOnly: false,
     },
     {

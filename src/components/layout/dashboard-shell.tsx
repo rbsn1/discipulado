@@ -14,10 +14,11 @@ interface Props {
     accentColor?:  string
     sidebarColor?: string
   }
+  fbvEnabled?: boolean
   children: React.ReactNode
 }
 
-export function DashboardShell({ profile, congregationName, theme, children }: Props) {
+export function DashboardShell({ profile, congregationName, theme, fbvEnabled = true, children }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const palette = deriveTheme(theme)
 
@@ -27,6 +28,7 @@ export function DashboardShell({ profile, congregationName, theme, children }: P
         profile={profile}
         congregationName={congregationName}
         theme={theme}
+        fbvEnabled={fbvEnabled}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />

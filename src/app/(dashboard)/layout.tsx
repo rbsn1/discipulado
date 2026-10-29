@@ -40,12 +40,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   let congregationName: string | undefined
   let theme: { logoUrl?: string | null; accentColor?: string; sidebarColor?: string } | undefined
+  let fbvEnabled = true
 
   if (profile.congregation_id) {
     const supabase = await createClient()
     const { data } = await supabase
       .from('congregations')
-      .select('name, logo_url, accent_color, sidebar_color')
+      .select('name, logo_url, accent_color, sidebar_color, fbv_enabled')
       .eq('id', profile.congregation_id)
       .single()
     congregationName = data?.name
@@ -54,6 +55,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       accentColor:  data?.accent_color ?? '#4F46E5',
       sidebarColor: data?.sidebar_color ?? '#0F172A',
     }
+    fbvEnabled = data?.fbv_enabled !== false
   }
 
   return (
@@ -61,6 +63,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       profile={profile}
       congregationName={congregationName}
       theme={theme}
+      fbvEnabled={fbvEnabled}
     >
       {children}
     </DashboardShell>
